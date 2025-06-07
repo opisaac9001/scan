@@ -208,14 +208,14 @@ struct SettingsView: View {
                 HStack {
                     Text("Version")
                     Spacer()
-                    Text("1.0.0")
+                    Text(AppConfig.version) // Use AppConfig
                         .foregroundColor(.secondary)
                 }
 
                 HStack {
                     Text("Build")
                     Spacer()
-                    Text("1")
+                    Text(AppConfig.build) // Use AppConfig
                         .foregroundColor(.secondary)
                 }
             }
