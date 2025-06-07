@@ -27,8 +27,42 @@ class CoreDataManager: ObservableObject {
             do {
                 try context.save()
             } catch {
-                print("Failed to save Core Data context: \(error)")
+                // Consider more robust error handling or logging for production
+                print("Failed to save Core Data context: \(error.localizedDescription)")
+                // Optionally, rethrow or handle specific errors
+                // For example, if validation errors occur:
+                if let detailedErrors = (error as NSError).userInfo[NSDetailedErrorsKey] as? [Error] {
+                    for detailedError in detailedErrors {
+                        print("Detailed error: \((detailedError as NSError).localizedDescription)")
+                    }
+                } else {
+                    print("Error details: \((error as NSError).userInfo)")
+                }
             }
+        }
+    }
+
+    // Helper to encode Codable structs to Data
+    private func encode<T: Codable>(_ value: T?) -> Data? {
+        guard let value = value else { return nil }
+        let encoder = JSONEncoder()
+        do {
+            return try encoder.encode(value)
+        } catch {
+            print("Failed to encode \(T.self): \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    // Helper to decode Data to Codable structs
+    private func decode<T: Codable>(_ type: T.Type, from data: Data?) -> T? {
+        guard let data = data else { return nil }
+        let decoder = JSONDecoder()
+        do {
+            return try decoder.decode(type, from: data)
+        } catch {
+            print("Failed to decode \(T.self): \(error.localizedDescription)")
+            return nil
         }
     }
 
@@ -36,36 +70,28 @@ class CoreDataManager: ObservableObject {
         let context = container.viewContext
         let entity = ReceiptEntity(context: context)
 
+        // Direct attributes from Receipt to ReceiptEntity
         entity.id = receipt.id
         entity.imageData = receipt.imageData
-        entity.vendor = receipt.vendor
-        entity.amount = receipt.amount ?? 0.0
-        entity.date = receipt.date
-        entity.category = receipt.category
-        entity.notes = receipt.notes
-        entity.rawText = receipt.rawText
-        entity.confidence = receipt.confidence ?? 0.0
-        entity.paymentMethod = receipt.paymentMethod
-        entity.location = receipt.location
-        entity.tags = receipt.tags.joined(separator: ",")
+        entity.rawOCRText = receipt.rawOCRText // Assuming this is the original full OCR text
+        entity.confidenceScore = receipt.confidenceScore ?? 0.0
         entity.needsReview = receipt.needsReview
         entity.createdAt = receipt.createdAt
         entity.updatedAt = receipt.updatedAt
-
-        // Enhanced fields from Receipt struct
-        entity.taxCategory = receipt.taxCategory
-        entity.businessPurpose = receipt.businessPurpose
-        entity.subtotal = receipt.subtotal ?? 0.0
-        entity.taxAmount = receipt.taxAmount ?? 0.0
-        entity.tipAmount = receipt.tipAmount ?? 0.0
-        entity.taxRate = receipt.taxRate ?? 0.0
-        entity.transactionId = receipt.transactionId
-        entity.vendorTaxId = receipt.vendorTaxId
-        entity.mileage = receipt.mileage
-        entity.vehicleInfo = receipt.vehicleInfo
         entity.receiptType = receipt.receiptType
-        entity.rawOCRText = receipt.rawOCRText // Corresponds to Receipt.rawOCRText
-        entity.confidenceScore = receipt.confidenceScore ?? 0.0 // Corresponds to Receipt.confidenceScore
+
+        // Serialize complex structs into Data
+        // IMPORTANT: Assumes ReceiptEntity has corresponding 'Data?' attributes:
+        // vendorInfoData, transactionInfoData, itemsData, totalsData, notesData
+        entity.setValue(encode(receipt.vendorInfo), forKey: "vendorInfoData")
+        entity.setValue(encode(receipt.transactionInfo), forKey: "transactionInfoData")
+        entity.setValue(encode(receipt.items), forKey: "itemsData")
+        entity.setValue(encode(receipt.totals), forKey: "totalsData")
+        entity.setValue(encode(receipt.notes), forKey: "notesData")
+
+        // Old direct fields that are now part of nested structs are no longer set here.
+        // e.g., entity.vendor, entity.amount, entity.date, etc.
+        // These would be removed from ReceiptEntity's attributes in the Core Data model.
 
         save()
         return entity
@@ -74,45 +100,40 @@ class CoreDataManager: ObservableObject {
     func fetchReceipts() -> [Receipt] {
         let context = container.viewContext
         let request: NSFetchRequest<ReceiptEntity> = ReceiptEntity.fetchRequest()
+        // Consider sorting by a more relevant field like transaction date if available and parsed
+        // For now, using createdAt for consistency with previous version.
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ReceiptEntity.createdAt, ascending: false)]
 
         do {
             let entities = try context.fetch(request)
-            return entities.map { entity in
-                Receipt(
+            return entities.compactMap { entity -> Receipt? in
+                // Deserialize complex structs from Data
+                // IMPORTANT: Assumes ReceiptEntity has corresponding 'Data?' attributes
+                let vendorInfo: Receipt.VendorInfo? = decode(Receipt.VendorInfo.self, from: entity.value(forKey: "vendorInfoData") as? Data)
+                let transactionInfo: Receipt.TransactionInfo? = decode(Receipt.TransactionInfo.self, from: entity.value(forKey: "transactionInfoData") as? Data)
+                let items: [Receipt.LineItem]? = decode([Receipt.LineItem].self, from: entity.value(forKey: "itemsData") as? Data)
+                let totals: Receipt.Totals? = decode(Receipt.Totals.self, from: entity.value(forKey: "totalsData") as? Data)
+                let notes: Receipt.Notes? = decode(Receipt.Notes.self, from: entity.value(forKey: "notesData") as? Data)
+
+                // Map direct attributes
+                return Receipt(
                     id: entity.id ?? UUID(),
                     imageData: entity.imageData,
-                    vendor: entity.vendor,
-                    amount: entity.amount == 0.0 ? nil : entity.amount,
-                    date: entity.date,
-                    category: entity.category,
-                    notes: entity.notes,
-                    rawText: entity.rawText,
-                    confidence: entity.confidence == 0.0 ? nil : entity.confidence,
-                    paymentMethod: entity.paymentMethod,
-                    location: entity.location,
-                    tags: entity.tags?.components(separatedBy: ",").filter { !$0.isEmpty } ?? [],
+                    rawOCRText: entity.rawOCRText,
+                    confidenceScore: entity.confidenceScore, // Already a Double in entity
                     needsReview: entity.needsReview,
                     createdAt: entity.createdAt ?? Date(),
                     updatedAt: entity.updatedAt ?? Date(),
-                    // Map enhanced fields from Entity to Struct
-                    taxCategory: entity.taxCategory,
-                    businessPurpose: entity.businessPurpose,
-                    subtotal: entity.subtotal == 0.0 ? nil : entity.subtotal,
-                    taxAmount: entity.taxAmount == 0.0 ? nil : entity.taxAmount,
-                    tipAmount: entity.tipAmount == 0.0 ? nil : entity.tipAmount,
-                    taxRate: entity.taxRate == 0.0 ? nil : entity.taxRate,
-                    transactionId: entity.transactionId,
-                    vendorTaxId: entity.vendorTaxId,
-                    mileage: entity.mileage,
-                    vehicleInfo: entity.vehicleInfo,
                     receiptType: entity.receiptType,
-                    rawOCRText: entity.rawOCRText,
-                    confidenceScore: entity.confidenceScore == 0.0 ? nil : entity.confidenceScore
+                    vendorInfo: vendorInfo,
+                    transactionInfo: transactionInfo,
+                    items: items,
+                    totals: totals,
+                    notes: notes
                 )
             }
         } catch {
-            print("Failed to fetch receipts: \(error)")
+            print("Failed to fetch receipts: \(error.localizedDescription)")
             return []
         }
     }
@@ -123,11 +144,12 @@ class CoreDataManager: ObservableObject {
         request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
 
         do {
-            let entities = try context.fetch(request)
-            entities.forEach { context.delete($0) }
-            save()
+            if let entityToDelete = try context.fetch(request).first {
+                context.delete(entityToDelete)
+                save()
+            }
         } catch {
-            print("Failed to delete receipt: \(error)")
+            print("Failed to delete receipt with id \(id): \(error.localizedDescription)")
         }
     }
 
@@ -137,54 +159,98 @@ class CoreDataManager: ObservableObject {
         request.predicate = NSPredicate(format: "id == %@", receipt.id as CVarArg)
 
         do {
-            let entities = try context.fetch(request)
-            if let entity = entities.first {
-                entity.vendor = receipt.vendor
-                entity.amount = receipt.amount ?? 0.0
-                entity.date = receipt.date
-                entity.category = receipt.category
-                entity.notes = receipt.notes
-                entity.paymentMethod = receipt.paymentMethod
-                entity.location = receipt.location
-                entity.tags = receipt.tags.joined(separator: ",")
+            if let entity = try context.fetch(request).first {
+                // Update direct attributes
+                entity.imageData = receipt.imageData // Allow image update
+                entity.rawOCRText = receipt.rawOCRText
+                entity.confidenceScore = receipt.confidenceScore ?? 0.0
                 entity.needsReview = receipt.needsReview
-                // Note: imageData, rawText, confidence, and createdAt are not updated here.
-
-                // Update enhanced fields
-                entity.taxCategory = receipt.taxCategory
-                entity.businessPurpose = receipt.businessPurpose
-                entity.subtotal = receipt.subtotal ?? 0.0
-                entity.taxAmount = receipt.taxAmount ?? 0.0
-                entity.tipAmount = receipt.tipAmount ?? 0.0
-                entity.taxRate = receipt.taxRate ?? 0.0
-                entity.transactionId = receipt.transactionId
-                entity.vendorTaxId = receipt.vendorTaxId
-                entity.mileage = receipt.mileage
-                entity.vehicleInfo = receipt.vehicleInfo
                 entity.receiptType = receipt.receiptType
-                entity.rawOCRText = receipt.rawOCRText // Corresponds to Receipt.rawOCRText
-                entity.confidenceScore = receipt.confidenceScore ?? 0.0 // Corresponds to Receipt.confidenceScore
+                entity.updatedAt = Date() // Always update this
 
-                entity.updatedAt = Date()
+                // Serialize and update complex structs
+                // IMPORTANT: Assumes ReceiptEntity has corresponding 'Data?' attributes
+                entity.setValue(encode(receipt.vendorInfo), forKey: "vendorInfoData")
+                entity.setValue(encode(receipt.transactionInfo), forKey: "transactionInfoData")
+                entity.setValue(encode(receipt.items), forKey: "itemsData")
+                entity.setValue(encode(receipt.totals), forKey: "totalsData")
+                entity.setValue(encode(receipt.notes), forKey: "notesData")
+
+                // entity.createdAt should not change on update.
 
                 save()
+            } else {
+                print("Receipt with ID \(receipt.id) not found for update.")
+                // Optionally, create it if not found, or handle as an error
+                // _ = createReceipt(from: receipt)
             }
         } catch {
-            print("Failed to update receipt: \(error)")
+            print("Failed to update receipt with ID \(receipt.id): \(error.localizedDescription)")
         }
     }
 
     func clearAllReceipts(completion: @escaping (Result<Void, Error>) -> Void) {
         let context = container.viewContext
-        let request: NSFetchRequest<NSFetchRequestResult> = ReceiptEntity.fetchRequest()
-        let deleteRequest = NSBatchDeleteRequest(fetchRequest: request)
+        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = ReceiptEntity.fetchRequest()
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        // For older iOS versions or if specific lifecycle methods on NSManagedObject are needed,
+        // fetch and delete individually:
+        // do {
+        //     let receipts = try context.fetch(fetchRequest) as? [NSManagedObject]
+        //     receipts?.forEach(context.delete)
+        //     saveContext()
+        //     completion(.success(()))
+        // } catch let error as NSError {
+        //     completion(.failure(error))
+        // }
 
         do {
             try context.execute(deleteRequest)
-            save()
+            // NSBatchDeleteRequest does not automatically update the viewContext,
+            // so if UI is bound directly to context, it might need manual refresh/reset.
+            // However, our fetchReceipts will get the fresh state.
+            save() // Save changes if any (though batch delete might bypass context's hasChanges)
             completion(.success(()))
         } catch {
             completion(.failure(error))
+        }
+    }
+
+    // Example of a more specific fetch, if needed
+    func fetchReceipt(withId id: UUID) -> Receipt? {
+        let context = container.viewContext
+        let request: NSFetchRequest<ReceiptEntity> = ReceiptEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1
+
+        do {
+            if let entity = try context.fetch(request).first {
+                let vendorInfo: Receipt.VendorInfo? = decode(Receipt.VendorInfo.self, from: entity.value(forKey: "vendorInfoData") as? Data)
+                let transactionInfo: Receipt.TransactionInfo? = decode(Receipt.TransactionInfo.self, from: entity.value(forKey: "transactionInfoData") as? Data)
+                let items: [Receipt.LineItem]? = decode([Receipt.LineItem].self, from: entity.value(forKey: "itemsData") as? Data)
+                let totals: Receipt.Totals? = decode(Receipt.Totals.self, from: entity.value(forKey: "totalsData") as? Data)
+                let notes: Receipt.Notes? = decode(Receipt.Notes.self, from: entity.value(forKey: "notesData") as? Data)
+
+                return Receipt(
+                    id: entity.id ?? UUID(),
+                    imageData: entity.imageData,
+                    rawOCRText: entity.rawOCRText,
+                    confidenceScore: entity.confidenceScore,
+                    needsReview: entity.needsReview,
+                    createdAt: entity.createdAt ?? Date(),
+                    updatedAt: entity.updatedAt ?? Date(),
+                    receiptType: entity.receiptType,
+                    vendorInfo: vendorInfo,
+                    transactionInfo: transactionInfo,
+                    items: items,
+                    totals: totals,
+                    notes: notes
+                )
+            }
+            return nil
+        } catch {
+            print("Failed to fetch receipt with ID \(id): \(error.localizedDescription)")
+            return nil
         }
     }
 }
