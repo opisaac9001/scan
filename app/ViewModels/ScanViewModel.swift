@@ -5,7 +5,7 @@ import Combine
 
 @MainActor
 class ScanViewModel: ObservableObject {
-    
+
     // MARK: - Published Properties
     @Published var isProcessing = false
     @Published var scanResult: Receipt?
@@ -16,12 +16,12 @@ class ScanViewModel: ObservableObject {
     @Published var confidence: Double = 0.0
     @Published var retryCount = 0
     @Published var canRetry = false
-    
+
     // MARK: - Services
     private let ocrService = OCRService()
     private let ollamaService = OllamaService()
     private let coreDataManager = CoreDataManager.shared
-    
+
     // MARK: - Processing Stages
     enum ProcessingStage: String, CaseIterable {
         case idle = "Ready to scan"
@@ -33,7 +33,7 @@ class ScanViewModel: ObservableObject {
         case saving = "Saving receipt..."
         case complete = "Processing complete"
         case error = "Error occurred"
-        
+
         var description: String {
             switch self {
             case .idle:
@@ -61,7 +61,7 @@ class ScanViewModel: ObservableObject {
     static let taxCategories = [
         "Office Supplies",
         "Travel",
-        "Meals & Entertainment", 
+        "Meals & Entertainment",
         "Fuel & Vehicle",
         "Professional Services",
         "Marketing & Advertising",
@@ -80,53 +80,53 @@ class ScanViewModel: ObservableObject {
         "Other Business",
         "Personal"
     ]
-    
+
     // MARK: - Main Processing Method
     func processReceipt(image: UIImage) async {
         print("🔄 ScanViewModel: Starting receipt processing")
-        
+
         resetState()
         isProcessing = true
         capturedImage = image
-        
+
         do {
             // Stage 1: Basic OCR
             await updateStage(.extractingText)
             let ocrText = try await extractBasicOCR(from: image)
             confidence = 0.3
-            
+
             // Stage 2: Enhanced LLM Analysis
             await updateStage(.analyzingWithLLM)
             let enhancedReceipt = try await processWithOllama(image: image, basicOCR: ocrText)
             confidence = enhancedReceipt.confidenceScore ?? 0.7
-            
+
             // Stage 3: Tax Categorization
             await updateStage(.categorizing)
             let categorizedReceipt = await enhanceTaxCategorization(receipt: enhancedReceipt)
-            
+
             // Stage 4: Save to Core Data
             await updateStage(.saving)
             let savedReceipt = try await saveReceipt(categorizedReceipt, imageData: image.jpegData(compressionQuality: 0.8))
-            
+
             // Complete
             await updateStage(.complete)
             scanResult = savedReceipt
-            
+
             print("✅ ScanViewModel: Receipt processing completed successfully")
               } catch {
             await handleAdvancedError(error)
         }
-        
+
         // Auto-reset after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             self.isProcessing = false
         }
     }
-    
+
     // MARK: - OCR Processing
     private func extractBasicOCR(from image: UIImage) async throws -> String {
         return try await withCheckedThrowingContinuation { continuation in
-            ocrService.extractText(from: image) { result in
+            ocrService.recognizeText(from: image) { result in // Changed extractText to recognizeText
                 switch result {
                 case .success(let text):
                     continuation.resume(returning: text)
@@ -136,28 +136,28 @@ class ScanViewModel: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Ollama LLM Processing
     private func processWithOllama(image: UIImage, basicOCR: String) async throws -> Receipt {
         await updateStage(.analyzingWithLLM)
-        
+
         do {
             let enhancedReceipt = try await ollamaService.processReceiptWithLLM(
                 image: image,
                 basicOCRText: basicOCR
             )
-            
+
             print("✅ ScanViewModel: Ollama LLM processing successful")
             return enhancedReceipt
-            
+
         } catch {
             print("⚠️ ScanViewModel: Ollama LLM failed, falling back to basic processing")
-            
+
             // Fallback to basic parsing if LLM fails
             return createFallbackReceipt(from: basicOCR, image: image)
         }
     }
-    
+
     // MARK: - Tax Categorization Enhancement
     private func enhanceTaxCategorization(receipt: Receipt) async -> Receipt {
         let enhancedCategory = await determineBestTaxCategory(
@@ -166,13 +166,13 @@ class ScanViewModel: ObservableObject {
             amount: receipt.amount,
             rawText: receipt.rawOCRText
         )
-        
+
         let businessPurpose = await generateBusinessPurpose(
             category: enhancedCategory,
             vendor: receipt.vendor,
             notes: receipt.notes
         )
-        
+
         return Receipt(
             id: receipt.id,
             imageData: receipt.imageData,
@@ -206,9 +206,9 @@ class ScanViewModel: ObservableObject {
     private func determineBestTaxCategory(category: String?, vendor: String?, amount: Double?, rawText: String?) async -> String {
         let vendorLower = vendor?.lowercased() ?? ""
         let textLower = rawText?.lowercased() ?? ""
-        
+
         // Fuel & Vehicle - Enhanced detection
-        if vendorLower.contains("shell") || vendorLower.contains("chevron") || 
+        if vendorLower.contains("shell") || vendorLower.contains("chevron") ||
            vendorLower.contains("exxon") || vendorLower.contains("bp") ||
            vendorLower.contains("mobil") || vendorLower.contains("arco") ||
            vendorLower.contains("valero") || vendorLower.contains("speedway") ||
@@ -221,7 +221,7 @@ class ScanViewModel: ObservableObject {
            textLower.contains("odometer") || textLower.contains("mileage") {
             return "Fuel & Vehicle"
         }
-        
+
         // Gifts & Entertainment - New enhanced detection
         if vendorLower.contains("flower") || vendorLower.contains("ftd") ||
            vendorLower.contains("1-800-flowers") || vendorLower.contains("gift") ||
@@ -232,7 +232,7 @@ class ScanViewModel: ObservableObject {
            textLower.contains("holiday gift") || textLower.contains("appreciation") {
             return "Gifts & Entertainment"
         }
-        
+
         // Meals & Entertainment - Enhanced detection
         if vendorLower.contains("restaurant") || vendorLower.contains("cafe") ||
            vendorLower.contains("mcdonald") || vendorLower.contains("starbucks") ||
@@ -244,7 +244,7 @@ class ScanViewModel: ObservableObject {
            textLower.contains("business meal") || textLower.contains("client dinner") {
             return "Meals & Entertainment"
         }
-        
+
         // Office Supplies - Enhanced detection
         if vendorLower.contains("staples") || vendorLower.contains("office depot") ||
            vendorLower.contains("best buy") || vendorLower.contains("amazon") ||
@@ -255,7 +255,7 @@ class ScanViewModel: ObservableObject {
            textLower.contains("ink cartridge") || textLower.contains("paper") {
             return "Office Supplies"
         }
-        
+
         // Professional Services - Enhanced detection
         if vendorLower.contains("attorney") || vendorLower.contains("lawyer") ||
            vendorLower.contains("cpa") || vendorLower.contains("accountant") ||
@@ -265,7 +265,7 @@ class ScanViewModel: ObservableObject {
            textLower.contains("bookkeeping") || textLower.contains("payroll") {
             return "Professional Services"
         }
-        
+
         // Banking & Finance - New category
         if vendorLower.contains("bank") || vendorLower.contains("credit union") ||
            vendorLower.contains("paypal") || vendorLower.contains("square") ||
@@ -274,7 +274,7 @@ class ScanViewModel: ObservableObject {
            textLower.contains("loan interest") || textLower.contains("finance charge") {
             return "Banking & Finance"
         }
-        
+
         // Shipping & Postage - New category
         if vendorLower.contains("fedex") || vendorLower.contains("ups") ||
            vendorLower.contains("usps") || vendorLower.contains("dhl") ||
@@ -284,7 +284,7 @@ class ScanViewModel: ObservableObject {
            textLower.contains("packaging") || textLower.contains("freight") {
             return "Shipping & Postage"
         }
-        
+
         // Groceries - Enhanced detection
         if vendorLower.contains("walmart") || vendorLower.contains("target") ||
            vendorLower.contains("kroger") || vendorLower.contains("safeway") ||
@@ -293,7 +293,7 @@ class ScanViewModel: ObservableObject {
            vendorLower.contains("grocery") || vendorLower.contains("supermarket") {
             return "Groceries & Food"
         }
-        
+
         // Travel - Enhanced detection
         if vendorLower.contains("hotel") || vendorLower.contains("airline") ||
            vendorLower.contains("uber") || vendorLower.contains("lyft") ||
@@ -304,15 +304,15 @@ class ScanViewModel: ObservableObject {
            textLower.contains("mileage reimbursement") {
             return "Travel"
         }
-        
+
         // Use provided category or default
         return category ?? "Other Business"
     }
       private func generateBusinessPurpose(category: String?, vendor: String?, notes: String?) async -> String? {
         guard let category = category else { return nil }
-        
+
         let vendor = vendor ?? "vendor"
-        
+
         switch category {
         case "Fuel & Vehicle":
             return "Business travel - fuel expense for \(vendor)"
@@ -346,12 +346,12 @@ class ScanViewModel: ObservableObject {
             return "Business expense - \(category.lowercased()) from \(vendor)"
         }
     }
-    
+
     private func createFallbackReceipt(from ocrText: String, image: UIImage) -> Receipt {
         // Basic parsing fallback
         return Receipt(
             imageData: image.jpegData(compressionQuality: 0.8),
-            vendor: "Unknown Vendor", 
+            vendor: "Unknown Vendor",
             amount: 0.0,
             date: Date(),
             category: "Other Business",
@@ -364,7 +364,7 @@ class ScanViewModel: ObservableObject {
             confidenceScore: 0.4
         )
     }
-    
+
     private func saveReceipt(_ receipt: Receipt, imageData: Data?) async throws -> Receipt {
         return try await withCheckedThrowingContinuation { continuation in
             coreDataManager.saveReceipt(receipt) { result in
@@ -377,7 +377,7 @@ class ScanViewModel: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - State Management
     private func updateStage(_ stage: ProcessingStage) async {
         await MainActor.run {
@@ -385,7 +385,7 @@ class ScanViewModel: ObservableObject {
             print("📍 Processing stage: \(stage.rawValue)")
         }
     }
-    
+
     private func resetState() {
         errorMessage = nil
         scanResult = nil
@@ -394,7 +394,7 @@ class ScanViewModel: ObservableObject {
         retryCount = 0
         canRetry = false
     }
-    
+
     // MARK: - Error Handling & Retry
     enum ScanError: LocalizedError {
         case cameraPermissionDenied
@@ -403,7 +403,7 @@ class ScanViewModel: ObservableObject {
         case networkTimeout
         case saveFailed(String)
         case imageProcessingFailed
-        
+
         var errorDescription: String? {
             switch self {
             case .cameraPermissionDenied:
@@ -420,7 +420,7 @@ class ScanViewModel: ObservableObject {
                 return "Failed to process the image"
             }
         }
-        
+
         var recoverySuggestion: String? {
             switch self {
             case .cameraPermissionDenied:
@@ -438,26 +438,26 @@ class ScanViewModel: ObservableObject {
             }
         }
     }
-    
+
     private func handleAdvancedError(_ error: Error) async {
         await MainActor.run {
             isProcessing = false
             processingStage = .error
-            
+
             // Determine if retry is possible
             canRetry = retryCount < 3 && isRetryableError(error)
-            
+
             // Set user-friendly error message
             if let scanError = error as? ScanError {
                 errorMessage = scanError.localizedDescription
             } else {
                 errorMessage = "An unexpected error occurred: \(error.localizedDescription)"
             }
-            
+
             print("❌ ScanViewModel advanced error: \(error)")
         }
     }
-    
+
     private func isRetryableError(_ error: Error) -> Bool {
         if let scanError = error as? ScanError {
             switch scanError {
@@ -469,40 +469,40 @@ class ScanViewModel: ObservableObject {
         }
         return true // Default to retryable for unknown errors
     }
-    
+
     // MARK: - Public Methods
     func startNewScan() {
         resetState()
         showCamera = true
     }
-    
+
     func retryProcessing() {
         guard let image = capturedImage else { return }
-        
+
         Task {
             await processReceipt(image: image)
         }
     }
-    
+
     func clearResults() {
         resetState()
         capturedImage = nil
         scanResult = nil
     }
-    
+
     func retryWithExponentialBackoff() async {
         guard canRetry, retryCount < 3, let image = capturedImage else { return }
-        
+
         retryCount += 1
         let delay = Double(retryCount * 2) // 2, 4, 6 seconds
-        
+
         print("🔄 Retrying scan attempt \(retryCount)/3 after \(delay)s delay")
-        
+
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-        
+
         await processReceipt(image: image)
     }
-    
+
     // MARK: - Manual Editing
     func updateReceiptCategory(_ receipt: Receipt, newCategory: String) async throws -> Receipt {
         let updatedReceipt = Receipt(
@@ -533,7 +533,7 @@ class ScanViewModel: ObservableObject {
             rawOCRText: receipt.rawOCRText,
             confidenceScore: receipt.confidenceScore
         )
-        
+
         return try await saveReceipt(updatedReceipt, imageData: receipt.imageData)
     }
 }
