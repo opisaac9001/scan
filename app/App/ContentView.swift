@@ -231,8 +231,8 @@ struct SettingsView: View {
             }
 
             Section("Support") {
-                Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
-                Link("Terms of Service", destination: URL(string: "https://example.com/terms")!)
+                Link("Privacy Policy", destination: URL(string: "#privacy-policy-url-pending")!)
+                Link("Terms of Service", destination: URL(string: "#terms-of-service-url-pending")!)
             }        }
         .navigationTitle("Settings")
         .sheet(isPresented: $showingExportOptions) {
