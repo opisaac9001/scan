@@ -104,12 +104,12 @@ For enhanced AI-powered receipt analysis:
 1. **Install Ollama**: Download from [ollama.ai](https://ollama.ai)
 2. **Pull the vision model**: `ollama pull llava:latest`
 3. **Start Ollama service**: `ollama serve`
-4. **Configure endpoint**: Update `OllamaService.swift` if using different URL
+4. **Configure endpoint**: The Ollama API endpoint and model can be configured in the app via Settings > AI Settings. `AppConfig.swift` provides the initial default values.
 
 ## 🔧 Core Components
 
 ### 🔍 OCR Service
-Uses iOS Vision framework to extract text from receipt images with high accuracy and confidence scoring.
+Uses iOS Vision framework to extract text from receipt images. OCR behavior (recognition level, language) can be customized in the app via Settings > OCR Settings. `AppConfig.swift` provides initial default values for these settings. Confidence scoring is also available.
 
 ### 🧠 Receipt Parser
 Intelligently parses OCR results to extract:
@@ -236,7 +236,7 @@ This project follows iOS development best practices:
 - [ ] **Shortcuts Integration** for Siri commands
 - [ ] **Document Scanner** integration
 - [ ] **Receipt Templates** for common vendors
-- [ ] **Multi-language** OCR support
+- [X] **Multi-language** OCR support (configurable via in-app Settings)
 - [ ] **Cloud Sync** with iCloud
 - [ ] **Team Sharing** for business accounts
 

@@ -46,12 +46,13 @@ The app uses Core Data for local storage:
 Built on iOS Vision framework:
 - **VNRecognizeTextRequest**: High-accuracy text recognition
 - **Custom Parsing**: Intelligent receipt field extraction
-- **Configuration**: Adjustable recognition levels in AppConfig
+- **Configuration**: OCR behavior such as recognition level, language preference, and language correction can be configured via the in-app Settings > OCR Settings. `AppConfig.swift` provides the initial default values for these settings.
 
 ### 4. Ollama Integration
 Optional LLM enhancement for intelligent categorization:
-- **Default URL**: http://localhost:11434
-- **Model**: llava:latest (multimodal for receipt images)
+- **Default URL**: http://localhost:11434 (Initial default from `AppConfig.swift`)
+- **Model**: llava:latest (Initial default from `AppConfig.swift`)
+- **Configuration**: The Ollama API endpoint and model name are configurable via the in-app Settings > AI Settings. `AppConfig.swift` holds the initial default values.
 - **Fallback**: Works without Ollama for basic OCR functionality
 
 ## Project Architecture
