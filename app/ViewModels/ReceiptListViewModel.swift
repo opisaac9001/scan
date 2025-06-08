@@ -11,8 +11,10 @@ class ReceiptListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var searchText = ""
     @Published var selectedCategory = "All"
-    @Published var selectedDateRange = DateRange.all
-    @Published var sortOption = SortOption.newest
+    // Updated to use ReceiptFilterSortEngine.DateRange
+    @Published var selectedDateRange = ReceiptFilterSortEngine.DateRange.all
+    // Updated to use ReceiptFilterSortEngine.SortOption
+    @Published var sortOption = ReceiptFilterSortEngine.SortOption.newest
     @Published var showingNeedsReview = false
     @Published var minAmount: Double? = nil
     @Published var maxAmount: Double? = nil
@@ -34,67 +36,7 @@ class ReceiptListViewModel: ObservableObject {
     private let exportService = ExportService()
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Filter Options
-    enum DateRange: String, CaseIterable {
-        case all = "All Time"
-        case thisMonth = "This Month"
-        case lastMonth = "Last Month"
-        case thisYear = "This Year"
-        case lastYear = "Last Year"
-        case custom = "Custom Range"
-
-        var dateInterval: DateInterval? {
-            let calendar = Calendar.current
-            let now = Date()
-
-            switch self {
-            case .all, .custom:
-                return nil
-            case .thisMonth:
-                let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
-                return DateInterval(start: startOfMonth, end: now)
-            case .lastMonth:
-                guard let lastMonthDate = calendar.date(byAdding: .month, value: -1, to: now) else { return nil }
-                let startOfLastMonth = calendar.dateInterval(of: .month, for: lastMonthDate)?.start ?? lastMonthDate
-                let endOfLastMonth = calendar.dateInterval(of: .month, for: lastMonthDate)?.end ?? lastMonthDate
-                return DateInterval(start: startOfLastMonth, end: endOfLastMonth)
-            case .thisYear:
-                let startOfYear = calendar.dateInterval(of: .year, for: now)?.start ?? now
-                return DateInterval(start: startOfYear, end: now)
-            case .lastYear:
-                guard let lastYearDate = calendar.date(byAdding: .year, value: -1, to: now) else { return nil }
-                let startOfLastYear = calendar.dateInterval(of: .year, for: lastYearDate)?.start ?? lastYearDate
-                let endOfLastYear = calendar.dateInterval(of: .year, for: lastYearDate)?.end ?? lastYearDate
-                return DateInterval(start: startOfLastYear, end: endOfLastYear)
-            }
-        }
-    }
-
-    enum SortOption: String, CaseIterable {
-        case newest = "Newest First"
-        case oldest = "Oldest First"
-        case amountHighest = "Highest Amount"
-        case amountLowest = "Lowest Amount"
-        case vendor = "Vendor A-Z"
-        case category = "Category"
-
-        var sortDescriptor: (Receipt, Receipt) -> Bool {
-            switch self {
-            case .newest:
-                return { $0.parsedDate ?? Date.distantPast > $1.parsedDate ?? Date.distantPast }
-            case .oldest:
-                return { $0.parsedDate ?? Date.distantPast < $1.parsedDate ?? Date.distantPast }
-            case .amountHighest:
-                return { $0.totals?.total ?? 0 > $1.totals?.total ?? 0 }
-            case .amountLowest:
-                return { $0.totals?.total ?? 0 < $1.totals?.total ?? 0 }
-            case .vendor:
-                return { ($0.primaryVendorName ?? "").localizedCaseInsensitiveCompare($1.primaryVendorName ?? "") == .orderedAscending }
-            case .category:
-                return { ($0.displayCategory ?? "").localizedCaseInsensitiveCompare($1.displayCategory ?? "") == .orderedAscending }
-            }
-        }
-    }
+    // Filter Options Enums (DateRange, SortOption) are now moved to ReceiptFilterSortEngine.swift
 
     // MARK: - Initialization
     init() {
@@ -113,10 +55,11 @@ class ReceiptListViewModel: ObservableObject {
         } else {
             print("✅ ReceiptListViewModel: Loaded \(self.receipts.count) receipts")
         }
-        self.filteredReceipts = applyFiltersAndSort(
+        // Initial filtering and sorting after loading receipts
+        self.filteredReceipts = ReceiptFilterSortEngine.applyFiltersAndSort(
             receipts: self.receipts,
             searchText: self.searchText,
-            category: self.selectedCategory,
+            filterCategory: self.selectedCategory, // Name matches what applyFiltersAndSort expects
             dateRange: self.selectedDateRange,
             needsReview: self.showingNeedsReview,
             minAmount: self.minAmount,
@@ -126,7 +69,7 @@ class ReceiptListViewModel: ObservableObject {
          updateStatistics()
     }
 
-    // MARK: - Filtering and Sorting
+    // MARK: - Filtering and Sorting Logic (Now in ReceiptFilterSortEngine)
     private func setupSubscriptions() {
         Publishers.CombineLatest4(
             $searchText.debounce(for: .milliseconds(300), scheduler: RunLoop.main),
@@ -140,20 +83,21 @@ class ReceiptListViewModel: ObservableObject {
             $receipts,
             $sortOption
         ))
-        .map { [weak self] (textAndCatFilters, amountAndDataFilters) in
+        .map { (textAndCatFilters, amountAndDataFilters) -> [Receipt] in // Removed [weak self] as not strictly needed for static call
             let (searchText, category, dateRange, needsReview) = textAndCatFilters
             let (minAmt, maxAmt, allReceipts, sortOpt) = amountAndDataFilters
 
-            return self?.applyFiltersAndSort(
+            // Call the static method from ReceiptFilterSortEngine
+            return ReceiptFilterSortEngine.applyFiltersAndSort(
                 receipts: allReceipts,
                 searchText: searchText,
-                category: category,
+                filterCategory: category, // Parameter name `category` from tuple maps to `filterCategory` in engine
                 dateRange: dateRange,
                 needsReview: needsReview,
                 minAmount: minAmt,
                 maxAmount: maxAmt,
                 sortOption: sortOpt
-            ) ?? []
+            )
         }
         .receive(on: DispatchQueue.main)
         .assign(to: \.filteredReceipts, on: self)
@@ -167,85 +111,7 @@ class ReceiptListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    private func applyFiltersAndSort(
-        receipts: [Receipt],
-        searchText: String,
-        category filterCategory: String,
-        dateRange: DateRange,
-        needsReview: Bool,
-        minAmount: Double?,
-        maxAmount: Double?,
-        sortOption: SortOption
-    ) -> [Receipt] {
-
-        var localFilteredReceipts = receipts
-
-        if !searchText.isEmpty {
-            let lowercasedSearchText = searchText.lowercased()
-            localFilteredReceipts = localFilteredReceipts.filter { receipt in
-                if receipt.primaryVendorName?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.vendorInfo?.address?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.vendorInfo?.city?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.vendorInfo?.state?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.displayCategory?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.notes?.description?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.notes?.handwriting?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.notes?.business_purpose?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.transactionInfo?.payment_method?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.transactionInfo?.transaction_id?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.rawOCRText?.lowercased().contains(lowercasedSearchText) == true { return true }
-                if receipt.receiptType?.lowercased().contains(lowercasedSearchText) == true { return true }
-
-                if let items = receipt.items {
-                    for item in items {
-                        if item.description?.lowercased().contains(lowercasedSearchText) == true { return true }
-                        if item.sku?.lowercased().contains(lowercasedSearchText) == true { return true }
-                        if item.expense_category?.lowercased().contains(lowercasedSearchText) == true { return true }
-                        if item.tax_category?.lowercased().contains(lowercasedSearchText) == true { return true }
-                         if item.codes?.contains(where: { $0.lowercased().contains(lowercasedSearchText) }) == true { return true }
-                    }
-                }
-                return false
-            }
-        }
-
-        if filterCategory != "All" {
-            localFilteredReceipts = localFilteredReceipts.filter { receipt in
-                if receipt.displayCategory?.localizedCaseInsensitiveCompare(filterCategory) == .orderedSame {
-                    return true
-                }
-                if let items = receipt.items {
-                    for item in items {
-                        if item.expense_category?.localizedCaseInsensitiveCompare(filterCategory) == .orderedSame {
-                            return true
-                        }
-                    }
-                }
-                return false
-            }
-        }
-
-        if let dateInterval = dateRange.dateInterval {
-            localFilteredReceipts = localFilteredReceipts.filter { receipt in
-                guard let receiptDate = receipt.parsedDate else { return false }
-                return dateInterval.contains(receiptDate)
-            }
-        }
-
-        if let minAmount = minAmount {
-            localFilteredReceipts = localFilteredReceipts.filter { ($0.totals?.total ?? 0) >= minAmount }
-        }
-
-        if let maxAmount = maxAmount {
-            localFilteredReceipts = localFilteredReceipts.filter { ($0.totals?.total ?? 0) <= maxAmount }
-        }
-
-        if needsReview {
-            localFilteredReceipts = localFilteredReceipts.filter { $0.needsReview }
-        }
-
-        return localFilteredReceipts.sorted(by: sortOption.sortDescriptor)
-    }
+    // applyFiltersAndSort method is now removed from here.
 
     // MARK: - Statistics
     private func updateStatistics() {
@@ -314,7 +180,8 @@ class ReceiptListViewModel: ObservableObject {
 
         Task {
             let result: Result<URL, ExportService.ExportError>
-            let summary = generateTaxSummary(receipts: receiptsToExport)
+            // Ensure generateTaxSummary uses the correct DateRange type if it's a parameter
+            let summary = generateTaxSummary(receipts: receiptsToExport, dateRange: self.selectedDateRange)
 
             switch format {
             case .csv:
@@ -324,7 +191,7 @@ class ReceiptListViewModel: ObservableObject {
             case .pdf:
                 result = exportService.exportToPDF(receipts: receiptsToExport, taxSummary: summary)
             case .excel:
-                result = exportService.exportToExcel(receipts: receiptsToExport) // Call the new stubbed method
+                result = exportService.exportToExcel(receipts: receiptsToExport)
             }
 
             await MainActor.run {
@@ -342,7 +209,8 @@ class ReceiptListViewModel: ObservableObject {
         }
     }
 
-    func generateTaxSummary(receipts: [Receipt], dateRange: DateRange = .all) -> TaxSummary {
+    // Updated to use ReceiptFilterSortEngine.DateRange
+    func generateTaxSummary(receipts: [Receipt], dateRange: ReceiptFilterSortEngine.DateRange = .all) -> TaxSummary {
         let taxReceipts = receipts.filter { $0.displayCategory != "Personal" }
 
         let categoryTotals = Dictionary(grouping: taxReceipts) { $0.displayCategory ?? "Other Business" }
@@ -371,10 +239,13 @@ class ReceiptListViewModel: ObservableObject {
     func clearFilters() {
         searchText = ""
         selectedCategory = "All"
-        selectedDateRange = .all
+        // Updated to use ReceiptFilterSortEngine.DateRange
+        selectedDateRange = ReceiptFilterSortEngine.DateRange.all
         showingNeedsReview = false
         minAmount = nil
         maxAmount = nil
+        // sortOption is not typically reset by clearFilters, but if it were:
+        // sortOption = ReceiptFilterSortEngine.SortOption.newest
     }
 
     func setAmountRange(min: Double?, max: Double?) {
@@ -387,9 +258,10 @@ class ReceiptListViewModel: ObservableObject {
     }
 }
 
-// MARK: - Tax Summary Model
+// MARK: - Tax Summary Model (Still defined here, ensure DateRange usage is consistent if it was a param)
 struct TaxSummary {
-    let dateRangeString: String
+    let dateRangeString: String // This was already String, so no direct type change needed here.
+                                // The generateTaxSummary method's parameter type was changed.
     let totalDeductions: Double
     let categoryBreakdown: [String: Double]
     let receiptCount: Int
