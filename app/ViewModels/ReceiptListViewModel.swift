@@ -19,20 +19,19 @@ class ReceiptListViewModel: ObservableObject {
 
     // MARK: - Statistics
     @Published var totalReceipts = 0
-    // @Published var totalAmount: Double = 0.0 // Will use totals from new Receipt struct if needed
     @Published var needsReviewCount = 0
-    @Published var categoryBreakdown: [String: Double] = [:] // Based on new Receipt.displayCategory
-    @Published var monthlyTotals: [String: Double] = [:]   // Based on new Receipt.totals.total
+    @Published var categoryBreakdown: [String: Double] = [:]
+    @Published var monthlyTotals: [String: Double] = [:]
 
     // MARK: - Export Properties
     @Published var shareableExportURL: URL? = nil
     @Published var showingShareSheet = false
     @Published var isExporting = false
-    @Published var exportError: ExportService.ExportError? = nil // For showing alerts
+    @Published var exportError: ExportService.ExportError? = nil
 
     // MARK: - Services
     private let coreDataManager = CoreDataManager.shared
-    private let exportService = ExportService() // Added ExportService instance
+    private let exportService = ExportService()
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Filter Options
@@ -42,7 +41,7 @@ class ReceiptListViewModel: ObservableObject {
         case lastMonth = "Last Month"
         case thisYear = "This Year"
         case lastYear = "Last Year"
-        case custom = "Custom Range" // Assuming custom range selection UI exists elsewhere
+        case custom = "Custom Range"
 
         var dateInterval: DateInterval? {
             let calendar = Calendar.current
@@ -82,7 +81,6 @@ class ReceiptListViewModel: ObservableObject {
         var sortDescriptor: (Receipt, Receipt) -> Bool {
             switch self {
             case .newest:
-                // Use parsedDate which comes from transactionInfo.date (String)
                 return { $0.parsedDate ?? Date.distantPast > $1.parsedDate ?? Date.distantPast }
             case .oldest:
                 return { $0.parsedDate ?? Date.distantPast < $1.parsedDate ?? Date.distantPast }
@@ -93,7 +91,6 @@ class ReceiptListViewModel: ObservableObject {
             case .vendor:
                 return { ($0.primaryVendorName ?? "").localizedCaseInsensitiveCompare($1.primaryVendorName ?? "") == .orderedAscending }
             case .category:
-                // displayCategory is a computed property in Receipt.swift
                 return { ($0.displayCategory ?? "").localizedCaseInsensitiveCompare($1.displayCategory ?? "") == .orderedAscending }
             }
         }
@@ -101,9 +98,7 @@ class ReceiptListViewModel: ObservableObject {
 
     // MARK: - Initialization
     init() {
-        // Initial load can be triggered by View's onAppear or here.
-        // For preview and simplicity, it's often fine here.
-        loadReceipts() // Initial load
+        loadReceipts()
         setupSubscriptions()
     }
 
@@ -111,19 +106,13 @@ class ReceiptListViewModel: ObservableObject {
     func loadReceipts() {
         isLoading = true
         errorMessage = nil
-
-        // Assuming CoreDataManager.fetchReceipts() is updated for the new Receipt structure
         self.receipts = coreDataManager.fetchReceipts()
         self.isLoading = false
         if self.receipts.isEmpty {
-            // self.errorMessage = "No receipts found." // Optional: message for empty state
             print("ℹ️ ReceiptListViewModel: No receipts found in Core Data.")
         } else {
             print("✅ ReceiptListViewModel: Loaded \(self.receipts.count) receipts")
         }
-        // updateStatistics() will be called by the pipeline when `receipts` changes if it's part of amounts.2
-        // Explicitly call applyFiltersAndSort to initialize filteredReceipts correctly after load.
-        // The subscription might not fire immediately if receipts is set before subscribers are fully ready.
         self.filteredReceipts = applyFiltersAndSort(
             receipts: self.receipts,
             searchText: self.searchText,
@@ -134,7 +123,7 @@ class ReceiptListViewModel: ObservableObject {
             maxAmount: self.maxAmount,
             sortOption: self.sortOption
         )
-         updateStatistics() // Update statistics after initial load and filtering
+         updateStatistics()
     }
 
     // MARK: - Filtering and Sorting
@@ -148,7 +137,7 @@ class ReceiptListViewModel: ObservableObject {
         .combineLatest(Publishers.CombineLatest4(
             $minAmount,
             $maxAmount,
-            $receipts, // Triggered when receipts array itself is replaced
+            $receipts,
             $sortOption
         ))
         .map { [weak self] (textAndCatFilters, amountAndDataFilters) in
@@ -170,7 +159,6 @@ class ReceiptListViewModel: ObservableObject {
         .assign(to: \.filteredReceipts, on: self)
         .store(in: &cancellables)
 
-        // Update statistics whenever filteredReceipts changes
         $filteredReceipts
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -182,7 +170,7 @@ class ReceiptListViewModel: ObservableObject {
     private func applyFiltersAndSort(
         receipts: [Receipt],
         searchText: String,
-        category: String, // This is displayCategory
+        category filterCategory: String, // Renamed to avoid confusion with receipt.category
         dateRange: DateRange,
         needsReview: Bool,
         minAmount: Double?,
@@ -190,60 +178,93 @@ class ReceiptListViewModel: ObservableObject {
         sortOption: SortOption
     ) -> [Receipt] {
 
-        var filtered = receipts
+        var localFilteredReceipts = receipts
 
+        // Search Text Filter
         if !searchText.isEmpty {
-            filtered = filtered.filter { receipt in
-                (receipt.primaryVendorName?.localizedCaseInsensitiveContains(searchText) == true) ||
-                (receipt.displayCategory?.localizedCaseInsensitiveContains(searchText) == true) ||
-                (receipt.notes?.description?.localizedCaseInsensitiveContains(searchText) == true) || // notes.description
-                (receipt.items?.contains(where: { $0.description?.localizedCaseInsensitiveContains(searchText) == true }) == true) ||
-                (receipt.rawOCRText?.localizedCaseInsensitiveContains(searchText) == true) ||
-                (receipt.vendorInfo?.city?.localizedCaseInsensitiveContains(searchText) == true) ||
-                (receipt.vendorInfo?.state?.localizedCaseInsensitiveContains(searchText) == true)
+            let lowercasedSearchText = searchText.lowercased()
+            localFilteredReceipts = localFilteredReceipts.filter { receipt in
+                if receipt.primaryVendorName?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.vendorInfo?.address?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.vendorInfo?.city?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.vendorInfo?.state?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.displayCategory?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.notes?.description?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.notes?.handwriting?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.notes?.business_purpose?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.transactionInfo?.payment_method?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.transactionInfo?.transaction_id?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.rawOCRText?.lowercased().contains(lowercasedSearchText) == true { return true }
+                if receipt.receiptType?.lowercased().contains(lowercasedSearchText) == true { return true }
+
+                if let items = receipt.items {
+                    for item in items {
+                        if item.description?.lowercased().contains(lowercasedSearchText) == true { return true }
+                        if item.sku?.lowercased().contains(lowercasedSearchText) == true { return true }
+                        if item.expense_category?.lowercased().contains(lowercasedSearchText) == true { return true }
+                        if item.tax_category?.lowercased().contains(lowercasedSearchText) == true { return true }
+                         if item.codes?.contains(where: { $0.lowercased().contains(lowercasedSearchText) }) == true { return true }
+                    }
+                }
+                return false
             }
         }
 
-        if category != "All" {
-            filtered = filtered.filter { $0.displayCategory == category }
+        // Category Filter (Updated Logic)
+        if filterCategory != "All" {
+            localFilteredReceipts = localFilteredReceipts.filter { receipt in
+                // Check overall receipt display category (case-insensitive)
+                if receipt.displayCategory?.localizedCaseInsensitiveCompare(filterCategory) == .orderedSame {
+                    return true
+                }
+                // Check item-level expense categories (case-insensitive)
+                if let items = receipt.items {
+                    for item in items {
+                        if item.expense_category?.localizedCaseInsensitiveCompare(filterCategory) == .orderedSame {
+                            return true
+                        }
+                    }
+                }
+                return false
+            }
         }
 
+        // Date Range Filter
         if let dateInterval = dateRange.dateInterval {
-            filtered = filtered.filter { receipt in
-                guard let receiptDate = receipt.parsedDate else { return false } // Use parsedDate
+            localFilteredReceipts = localFilteredReceipts.filter { receipt in
+                guard let receiptDate = receipt.parsedDate else { return false }
                 return dateInterval.contains(receiptDate)
             }
         }
 
+        // Amount Range Filters
         if let minAmount = minAmount {
-            filtered = filtered.filter { $0.totals?.total ?? 0 >= minAmount }
+            localFilteredReceipts = localFilteredReceipts.filter { ($0.totals?.total ?? 0) >= minAmount }
         }
 
         if let maxAmount = maxAmount {
-            filtered = filtered.filter { $0.totals?.total ?? 0 <= maxAmount }
+            localFilteredReceipts = localFilteredReceipts.filter { ($0.totals?.total ?? 0) <= maxAmount }
         }
 
+        // Needs Review Filter
         if needsReview {
-            filtered = filtered.filter { $0.needsReview }
+            localFilteredReceipts = localFilteredReceipts.filter { $0.needsReview }
         }
 
-        return filtered.sorted(by: sortOption.sortDescriptor)
+        return localFilteredReceipts.sorted(by: sortOption.sortDescriptor)
     }
 
     // MARK: - Statistics
     private func updateStatistics() {
-        // Update statistics based on FILTERED receipts, not all receipts
         let receiptsToAnalyze = filteredReceipts
-
         totalReceipts = receiptsToAnalyze.count
-        // totalAmount = receiptsToAnalyze.compactMap { $0.totals?.total }.reduce(0, +) // Use filtered for stats
         needsReviewCount = receiptsToAnalyze.filter { $0.needsReview }.count
 
         categoryBreakdown = Dictionary(grouping: receiptsToAnalyze) { $0.displayCategory ?? "Uncategorized" }
             .mapValues { $0.compactMap { $0.totals?.total }.reduce(0, +) }
 
         monthlyTotals = Dictionary(grouping: receiptsToAnalyze) { receipt in
-            guard let date = receipt.parsedDate else { return "Unknown Date" } // Use parsedDate
+            guard let date = receipt.parsedDate else { return "Unknown Date" }
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM"
             return formatter.string(from: date)
@@ -253,13 +274,10 @@ class ReceiptListViewModel: ObservableObject {
 
     // MARK: - Receipt Management
     func deleteReceipt(_ receipt: Receipt) {
-        coreDataManager.deleteReceipt(withId: receipt.id) // CoreDataManager handles its own fetch/delete
-        // Optimistically update local list or reload
+        coreDataManager.deleteReceipt(withId: receipt.id)
         if let index = receipts.firstIndex(where: { $0.id == receipt.id }) {
             receipts.remove(at: index)
         }
-        // filteredReceipts will update via Combine pipeline due to `receipts` changing.
-        // updateStatistics() will also be called by pipeline.
         print("✅ ReceiptListViewModel: Receipt delete initiated for ID \(receipt.id)")
     }
 
@@ -272,11 +290,10 @@ class ReceiptListViewModel: ObservableObject {
         if let index = receipts.firstIndex(where: { $0.id == receipt.id }) {
             receipts[index] = updatedReceipt
         }
-        // filteredReceipts will update via Combine pipeline.
         print("✅ ReceiptListViewModel: Receipt marked as reviewed for ID \(receipt.id)")
     }
 
-    func updateReceipt(_ receipt: Receipt) { // General update
+    func updateReceipt(_ receipt: Receipt) {
         var mutableReceipt = receipt
         mutableReceipt.updatedAt = Date()
         coreDataManager.updateReceipt(mutableReceipt)
@@ -291,22 +308,20 @@ class ReceiptListViewModel: ObservableObject {
     func exportAndShareReceipts(format: ExportService.ExportFormat) {
         isExporting = true
         exportError = nil
-        shareableExportURL = nil // Clear previous URL
+        shareableExportURL = nil
 
-        // Use filteredReceipts for export, as this reflects what the user is currently seeing.
         let receiptsToExport = self.filteredReceipts
 
         if receiptsToExport.isEmpty {
             print("ℹ️ No receipts to export for the current filter.")
-            // self.exportError = ExportService.ExportError.noData // Or a custom error
-            // self.isExporting = false
-            // return
-            // For now, proceed with empty data, ExportService might handle it or return error.
+            self.exportError = .noReceiptsToExport
+            self.isExporting = false
+            return
         }
 
-        Task { // Ensure background execution for potentially long export tasks
+        Task {
             let result: Result<URL, ExportService.ExportError>
-            let summary = generateTaxSummary(receipts: receiptsToExport) // Generate summary based on receiptsToExport
+            let summary = generateTaxSummary(receipts: receiptsToExport)
 
             switch format {
             case .csv:
@@ -315,13 +330,12 @@ class ReceiptListViewModel: ObservableObject {
                 result = exportService.exportToJSON(receipts: receiptsToExport, taxSummary: summary)
             case .pdf:
                 result = exportService.exportToPDF(receipts: receiptsToExport, taxSummary: summary)
-            // If .excel or other formats are added to ExportFormat enum but not implemented in ExportService:
-            default:
-                print("❌ Export format \(format.rawValue) not implemented yet.")
-                result = .failure(.exportFailed(reason: "Format \(format.rawValue) not implemented."))
+            case .excel:
+                print("⚠️ Export format .excel not implemented in ExportService.")
+                result = .failure(.unimplementedFormat(format.rawValue))
             }
 
-            await MainActor.run { // Switch back to main thread for UI updates
+            await MainActor.run {
                 self.isExporting = false
                 switch result {
                 case .success(let url):
@@ -336,9 +350,7 @@ class ReceiptListViewModel: ObservableObject {
         }
     }
 
-    // Modified generateTaxSummary to accept receipts
     func generateTaxSummary(receipts: [Receipt], dateRange: DateRange = .all) -> TaxSummary {
-        // Filter business receipts only (assuming displayCategory is reliable for "Personal")
         let taxReceipts = receipts.filter { $0.displayCategory != "Personal" }
 
         let categoryTotals = Dictionary(grouping: taxReceipts) { $0.displayCategory ?? "Other Business" }
@@ -349,18 +361,17 @@ class ReceiptListViewModel: ObservableObject {
         let totalDeductions = categoryTotals.values.reduce(0, +)
 
         return TaxSummary(
-            dateRangeString: dateRange.rawValue, // Pass string directly
+            dateRangeString: dateRange.rawValue,
             totalDeductions: totalDeductions,
             categoryBreakdown: categoryTotals,
             receiptCount: taxReceipts.count,
             needsReviewCount: taxReceipts.filter { $0.needsReview }.count,
-            receipts: taxReceipts // Pass the filtered tax receipts
+            receipts: taxReceipts
         )
     }
 
     // MARK: - Utility Methods
     var availableCategories: [String] {
-        // Use displayCategory for UI consistency
         let categories = Set(receipts.compactMap { $0.displayCategory })
         return ["All"] + categories.sorted()
     }
@@ -380,20 +391,18 @@ class ReceiptListViewModel: ObservableObject {
     }
 
     func refreshData() {
-        // This will re-trigger the Core Data fetch and update the `receipts` array,
-        // which in turn will update `filteredReceipts` and statistics via the Combine pipeline.
         loadReceipts()
     }
 }
 
-// MARK: - Tax Summary Model (Updated to use String for dateRange for simplicity)
+// MARK: - Tax Summary Model
 struct TaxSummary {
     let dateRangeString: String
     let totalDeductions: Double
     let categoryBreakdown: [String: Double]
     let receiptCount: Int
     let needsReviewCount: Int
-    let receipts: [Receipt] // Keep actual receipts for detailed PDF/JSON if needed
+    let receipts: [Receipt]
 
     var formattedTotalDeductions: String {
         let formatter = NumberFormatter()
@@ -403,18 +412,17 @@ struct TaxSummary {
     }
 
     var completionPercentage: Double {
-        guard receiptCount > 0 else { return 1.0 } // Or 0.0 if no receipts means 0% complete
+        guard receiptCount > 0 else { return 1.0 }
         return Double(receiptCount - needsReviewCount) / Double(receiptCount)
     }
 }
 
-// MARK: - Batch Operations (Updated to use new Receipt structure if necessary)
+// MARK: - Batch Operations
 extension ReceiptListViewModel {
     @Published var isInSelectionMode = false
     @Published var selectedReceiptIds: Set<UUID> = []
 
     var selectedReceipts: [Receipt] {
-        // Ensure this uses the currently displayed (and filtered) list for selection context
         filteredReceipts.filter { selectedReceiptIds.contains($0.id) }
     }
 
@@ -437,7 +445,7 @@ extension ReceiptListViewModel {
         }
     }
 
-    func selectAllFilteredReceipts() { // Renamed for clarity
+    func selectAllFilteredReceipts() {
         selectedReceiptIds = Set(filteredReceipts.map { $0.id })
     }
 
@@ -446,38 +454,28 @@ extension ReceiptListViewModel {
     }
 
     func deleteSelectedReceipts() {
-        let receiptsToDelete = selectedReceipts // selectedReceipts already refers to filtered list
+        let receiptsToDelete = selectedReceipts
         for receipt in receiptsToDelete {
-            deleteReceipt(receipt) // This will update `self.receipts` and pipeline will update `filteredReceipts`
+            deleteReceipt(receipt)
         }
-        selectedReceiptIds.removeAll() // Clear selection
-        if receiptsToDelete.count > 0 && filteredReceipts.isEmpty { // If all visible items were deleted
-             isInSelectionMode = false // Exit selection mode
-        } else if selectedReceipts.isEmpty { // If selection becomes empty
-            // Optionally exit selection mode or leave it to user
+        selectedReceiptIds.removeAll()
+        if receiptsToDelete.count > 0 && filteredReceipts.isEmpty {
+             isInSelectionMode = false
+        } else if selectedReceipts.isEmpty {
         }
     }
 
     func markSelectedAsReviewed() {
         let receiptsToUpdate = selectedReceipts.filter { $0.needsReview }
         for receipt in receiptsToUpdate {
-            markAsReviewed(receipt) // This updates `self.receipts` and pipeline updates `filteredReceipts`
+            markAsReviewed(receipt)
         }
-        // Selection remains, user can deselect or continue.
-        // Or clear selection:
-        // selectedReceiptIds.removeAll()
     }
 
     func bulkUpdateCategory(_ newCategory: String) {
         let receiptsToUpdate = selectedReceipts
-        for var receipt in receiptsToUpdate { // Make receipt mutable
-            // Updating category is complex due to new structure.
-            // This might mean changing receipt.receiptType or items' expense_category.
-            // For simplicity, let's assume we're changing a conceptual 'displayCategory'
-            // which might mean updating the receiptType for now.
-            // This is a placeholder for more robust category update logic.
-            receipt.receiptType = newCategory // Example: treat newCategory as the new receiptType
-            // If items exist, ideally update their expense_category too
+        for var receipt in receiptsToUpdate {
+            receipt.receiptType = newCategory
             if receipt.items != nil {
                 receipt.items = receipt.items?.map {
                     var item = $0
@@ -487,20 +485,18 @@ extension ReceiptListViewModel {
             }
             updateReceipt(receipt)
         }
-        // selectedReceiptIds.removeAll() // Optionally clear selection
     }
 }
 
-// MARK: - Core Data Interaction (Simplified, assuming CoreDataManager methods handle details)
+// MARK: - Core Data Interaction
 extension ReceiptListViewModel {
     func clearAllData() {
         coreDataManager.clearAllReceipts { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    self?.receipts.removeAll() // This will trigger UI updates via Combine
+                    self?.receipts.removeAll()
                     self?.selectedReceiptIds.removeAll()
-                    // self?.updateStatistics() // Will be called by pipeline
                     print("✅ ReceiptListViewModel: All data cleared successfully")
                 case .failure(let error):
                     self?.errorMessage = error.localizedDescription
@@ -509,9 +505,4 @@ extension ReceiptListViewModel {
             }
         }
     }
-
-    // This was a placeholder, ScanViewModel now handles new receipt processing.
-    // func processNewReceipt(image: UIImage) {
-    //     print("🔄 This method is deprecated. Use ScanViewModel for new receipts.")
-    // }
 }
