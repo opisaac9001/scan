@@ -4,14 +4,14 @@ import UniformTypeIdentifiers
 
 /// Service for exporting receipt data in various formats for tax preparation
 class ExportService: ObservableObject {
-    
+
     // MARK: - Export Formats
     enum ExportFormat: String, CaseIterable {
         case csv = "CSV"
-        case pdf = "PDF" 
+        case pdf = "PDF"
         case json = "JSON"
-        case excel = "Excel"
-        
+        case excel = "Excel" // Excel is a format option
+
         var fileExtension: String {
             switch self {
             case .csv: return "csv"
@@ -20,7 +20,7 @@ class ExportService: ObservableObject {
             case .excel: return "xlsx"
             }
         }
-        
+
         var mimeType: String {
             switch self {
             case .csv: return "text/csv"
@@ -30,386 +30,413 @@ class ExportService: ObservableObject {
             }
         }
     }
-    
-    // MARK: - Export Options
+
+    // MARK: - Export Options (Currently not used directly by export methods, but can be expanded)
     struct ExportOptions {
         let format: ExportFormat
-        let includePDFAttachments: Bool
-        let groupByCategory: Bool
-        let includeImages: Bool
-        let dateRange: String
-        let taxYearOnly: Bool
-        
-        static let `default` = ExportOptions(
-            format: .csv,
-            includePDFAttachments: false,
-            groupByCategory: true,
-            includeImages: false,
-            dateRange: "This Year",
-            taxYearOnly: true
-        )
+        // Add other options like date ranges, specific fields to include, etc.
+        // For example:
+        // let dateRange: DateInterval?
+        // let includeImages: Bool
+
+        static func `default`(for format: ExportFormat) -> ExportOptions {
+            ExportOptions(format: format)
+        }
     }
-    
+
     // MARK: - CSV Export
-    func exportToCSV(receipts: [Receipt], options: ExportOptions = .default) -> Result<URL, ExportError> {
+    // Updated to use new Receipt structure
+    func exportToCSV(receipts: [Receipt]) -> Result<URL, ExportError> {
+        if receipts.isEmpty { return .failure(.noReceiptsToExport) }
         do {
-            let csvContent = try generateCSVContent(receipts: receipts, options: options)
+            let csvContent = try generateCSVContent(receipts: receipts)
             let fileName = "receipts_export_\(dateString()).csv"
             let url = try writeToTemporaryFile(content: csvContent, fileName: fileName)
-            
+
             print("✅ ExportService: CSV export successful - \(receipts.count) receipts")
             return .success(url)
-            
+
+        } catch let error as ExportError {
+            print("❌ ExportService: CSV export failed - \(error.localizedDescription)")
+            return .failure(error)
         } catch {
-            print("❌ ExportService: CSV export failed - \(error)")
+            print("❌ ExportService: CSV export failed - \(error.localizedDescription)")
             return .failure(.csvGenerationFailed(error))
         }
     }
-    
-    private func generateCSVContent(receipts: [Receipt], options: ExportOptions) throws -> String {
+
+    private func generateCSVContent(receipts: [Receipt]) throws -> String {
         var csvLines: [String] = []
-        
-        // Enhanced CSV headers for tax purposes
+
+        // Headers based on new Receipt structure
         let headers = [
-            "Date", "Vendor", "Category", "Tax Category", "Amount", "Subtotal", "Tax Amount", "Tip Amount", 
-            "Tax Rate", "Payment Method", "Location", "Business Purpose", "Transaction ID", "Vendor Tax ID",
-            "Mileage", "Vehicle Info", "Receipt Type", "Confidence Score", "Needs Review", "Notes", "Created Date"
+            "ID", "Date", "Time", "Vendor Name", "Store Name", "Address", "City", "State", "Zip", "Phone", "Website", "Slogan", "Vendor Tax ID",
+            "Transaction ID", "Payment Method", "Card Ending", "Auth Code", "Cashier", "Register", "Customer Name", "Customer Number", "Return Policy",
+            "Receipt Type", "Subtotal", "Tax Amount", "Tax Rate", "Tip Amount", "Discount (Total)", "Total Amount",
+            "Item Description", "Item Quantity", "Item Unit Price", "Item Total Price", "Item Expense Category", "Item Tax Category", "Item SKU", "Item Discount", "Item Codes", "Item Is Expense", "Item Needs Review",
+            "Notes Description", "Handwritten Notes", "Vehicle", "Mileage", "Trip", "Business Purpose (Note)",
+            "Raw OCR Text", "Confidence Score", "Needs Review (Receipt)", "Created At", "Updated At"
         ]
-        
         csvLines.append(headers.joined(separator: ","))
-        
-        // Group by category if requested
-        let sortedReceipts = options.groupByCategory ? 
-            receipts.sorted { ($0.taxCategory ?? "Other") < ($1.taxCategory ?? "Other") } : 
-            receipts.sorted { ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast) }
-        
+
+        let sortedReceipts = receipts.sorted { ($0.parsedDate ?? Date.distantPast) < ($1.parsedDate ?? Date.distantPast) }
+
         for receipt in sortedReceipts {
-            let row = [
-                csvEscape(receipt.formattedDate),
-                csvEscape(receipt.vendor ?? ""),
-                csvEscape(receipt.category ?? ""),
-                csvEscape(receipt.taxCategory ?? ""),
-                String(receipt.amount ?? 0.0),
-                String(receipt.subtotal ?? 0.0),
-                String(receipt.taxAmount ?? 0.0),
-                String(receipt.tipAmount ?? 0.0),
-                String(receipt.taxRate ?? 0.0),
-                csvEscape(receipt.paymentMethod ?? ""),
-                csvEscape(receipt.location ?? ""),
-                csvEscape(receipt.businessPurpose ?? ""),
-                csvEscape(receipt.transactionId ?? ""),
-                csvEscape(receipt.vendorTaxId ?? ""),
-                csvEscape(receipt.mileage ?? ""),
-                csvEscape(receipt.vehicleInfo ?? ""),
-                csvEscape(receipt.receiptType ?? ""),
-                String(receipt.confidenceScore ?? 0.0),
-                receipt.needsReview ? "Yes" : "No",
-                csvEscape(receipt.notes ?? ""),
-                formatDateForCSV(receipt.createdAt)
-            ]
-            
-            csvLines.append(row.joined(separator: ","))
+            // For items, create one row per item, repeating receipt-level info
+            if let items = receipt.items, !items.isEmpty {
+                for item in items {
+                    let row = [
+                        csvEscape(receipt.id.uuidString),
+                        csvEscape(receipt.transactionInfo?.date ?? ""),
+                        csvEscape(receipt.transactionInfo?.time ?? ""),
+                        csvEscape(receipt.vendorInfo?.vendor ?? ""),
+                        csvEscape(receipt.vendorInfo?.store_name ?? ""),
+                        csvEscape(receipt.vendorInfo?.address ?? ""),
+                        csvEscape(receipt.vendorInfo?.city ?? ""),
+                        csvEscape(receipt.vendorInfo?.state ?? ""),
+                        csvEscape(receipt.vendorInfo?.zip_code ?? ""),
+                        csvEscape(receipt.vendorInfo?.phone ?? ""),
+                        csvEscape(receipt.vendorInfo?.website ?? ""),
+                        csvEscape(receipt.vendorInfo?.slogan ?? ""),
+                        csvEscape(receipt.vendorInfo?.tax_id ?? ""),
+                        csvEscape(receipt.transactionInfo?.transaction_id ?? ""),
+                        csvEscape(receipt.transactionInfo?.payment_method ?? ""),
+                        csvEscape(receipt.transactionInfo?.card_ending ?? ""),
+                        csvEscape(receipt.transactionInfo?.auth_code ?? ""),
+                        csvEscape(receipt.transactionInfo?.cashier ?? ""),
+                        csvEscape(receipt.transactionInfo?.register ?? ""),
+                        csvEscape(receipt.transactionInfo?.customer_name ?? ""),
+                        csvEscape(receipt.transactionInfo?.customer_number ?? ""),
+                        csvEscape(receipt.transactionInfo?.return_policy ?? ""),
+                        csvEscape(receipt.receiptType ?? ""),
+                        String(receipt.totals?.subtotal ?? 0.0),
+                        String(receipt.totals?.tax ?? 0.0),
+                        String(receipt.totals?.tax_rate ?? 0.0),
+                        String(receipt.totals?.tip ?? 0.0),
+                        String(receipt.totals?.discount ?? 0.0),
+                        String(receipt.totals?.total ?? 0.0),
+                        csvEscape(item.description ?? ""),
+                        String(item.quantity ?? 0.0),
+                        String(item.unit_price ?? 0.0),
+                        String(item.total_price ?? 0.0),
+                        csvEscape(item.expense_category ?? ""),
+                        csvEscape(item.tax_category ?? ""),
+                        csvEscape(item.sku ?? ""),
+                        String(item.discount ?? 0.0),
+                        csvEscape(item.codes?.joined(separator: ";") ?? ""),
+                        item.is_expense.map { $0 ? "Yes" : "No" } ?? "",
+                        item.needs_review.map { $0 ? "Yes" : "No" } ?? "",
+                        csvEscape(receipt.notes?.description ?? ""),
+                        csvEscape(receipt.notes?.handwriting ?? ""),
+                        csvEscape(receipt.notes?.vehicle ?? ""),
+                        csvEscape(receipt.notes?.mileage ?? ""),
+                        csvEscape(receipt.notes?.trip ?? ""),
+                        csvEscape(receipt.notes?.business_purpose ?? ""),
+                        csvEscape(receipt.rawOCRText ?? ""),
+                        String(receipt.confidenceScore ?? 0.0),
+                        receipt.needsReview ? "Yes" : "No",
+                        formatDateForCSV(receipt.createdAt),
+                        formatDateForCSV(receipt.updatedAt)
+                    ].map { $0 } // Ensure all are strings before joining
+                    csvLines.append(row.joined(separator: ","))
+                }
+            } else { // No items, one row for the receipt
+                 let row = [
+                    csvEscape(receipt.id.uuidString),
+                    csvEscape(receipt.transactionInfo?.date ?? ""),
+                    csvEscape(receipt.transactionInfo?.time ?? ""),
+                    csvEscape(receipt.vendorInfo?.vendor ?? ""),
+                    csvEscape(receipt.vendorInfo?.store_name ?? ""),
+                    csvEscape(receipt.vendorInfo?.address ?? ""),
+                    csvEscape(receipt.vendorInfo?.city ?? ""),
+                    csvEscape(receipt.vendorInfo?.state ?? ""),
+                    csvEscape(receipt.vendorInfo?.zip_code ?? ""),
+                    csvEscape(receipt.vendorInfo?.phone ?? ""),
+                    csvEscape(receipt.vendorInfo?.website ?? ""),
+                    csvEscape(receipt.vendorInfo?.slogan ?? ""),
+                    csvEscape(receipt.vendorInfo?.tax_id ?? ""),
+                    csvEscape(receipt.transactionInfo?.transaction_id ?? ""),
+                    csvEscape(receipt.transactionInfo?.payment_method ?? ""),
+                    csvEscape(receipt.transactionInfo?.card_ending ?? ""),
+                    csvEscape(receipt.transactionInfo?.auth_code ?? ""),
+                    csvEscape(receipt.transactionInfo?.cashier ?? ""),
+                    csvEscape(receipt.transactionInfo?.register ?? ""),
+                    csvEscape(receipt.transactionInfo?.customer_name ?? ""),
+                    csvEscape(receipt.transactionInfo?.customer_number ?? ""),
+                    csvEscape(receipt.transactionInfo?.return_policy ?? ""),
+                    csvEscape(receipt.receiptType ?? ""),
+                    String(receipt.totals?.subtotal ?? 0.0),
+                    String(receipt.totals?.tax ?? 0.0),
+                    String(receipt.totals?.tax_rate ?? 0.0),
+                    String(receipt.totals?.tip ?? 0.0),
+                    String(receipt.totals?.discount ?? 0.0),
+                    String(receipt.totals?.total ?? 0.0),
+                    "", "", "", "", "", "", "", "", "", "", "", // Empty item fields
+                    csvEscape(receipt.notes?.description ?? ""),
+                    csvEscape(receipt.notes?.handwriting ?? ""),
+                    csvEscape(receipt.notes?.vehicle ?? ""),
+                    csvEscape(receipt.notes?.mileage ?? ""),
+                    csvEscape(receipt.notes?.trip ?? ""),
+                    csvEscape(receipt.notes?.business_purpose ?? ""),
+                    csvEscape(receipt.rawOCRText ?? ""),
+                    String(receipt.confidenceScore ?? 0.0),
+                    receipt.needsReview ? "Yes" : "No",
+                    formatDateForCSV(receipt.createdAt),
+                    formatDateForCSV(receipt.updatedAt)
+                ].map { $0 }
+                csvLines.append(row.joined(separator: ","))
+            }
         }
-        
         return csvLines.joined(separator: "\n")
     }
-    
+
     private func csvEscape(_ text: String) -> String {
         if text.contains(",") || text.contains("\"") || text.contains("\n") {
             return "\"" + text.replacingOccurrences(of: "\"", with: "\"\"") + "\""
         }
         return text
     }
-    
-    // MARK: - JSON Export
+
+    // MARK: - JSON Export (Updated to use new Receipt structure)
     func exportToJSON(receipts: [Receipt], taxSummary: TaxSummary? = nil) -> Result<URL, ExportError> {
+        if receipts.isEmpty && taxSummary == nil { return .failure(.noReceiptsToExport) } // Allow export if only summary exists
         do {
-            let exportData = TaxExportData(
+            // Use the Receipt struct directly as it's Codable and has the new structure
+            let exportData = JSONExportContainer(
                 exportDate: Date(),
-                dateRange: taxSummary?.dateRange.rawValue ?? "All Time",
-                totalReceipts: receipts.count,
-                totalAmount: receipts.compactMap { $0.amount }.reduce(0, +),
-                summary: taxSummary,
-                receipts: receipts.map { ReceiptExportModel(from: $0) }
+                summary: taxSummary, // TaxSummary is already Codable
+                receipts: receipts  // Receipt is already Codable with the new structure
             )
-            
+
             let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
+            encoder.dateEncodingStrategy = .iso8601 // Dates in Receipt are already Date type
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            
+
             let jsonData = try encoder.encode(exportData)
-            let fileName = "receipts_tax_export_\(dateString()).json"
+            let fileName = "receipts_export_\(dateString()).json"
             let url = try writeToTemporaryFile(data: jsonData, fileName: fileName)
-            
+
             print("✅ ExportService: JSON export successful - \(receipts.count) receipts")
             return .success(url)
-            
+
+        } catch let error as ExportError {
+            print("❌ ExportService: JSON export failed - \(error.localizedDescription)")
+            return .failure(error)
         } catch {
-            print("❌ ExportService: JSON export failed - \(error)")
+            print("❌ ExportService: JSON export failed - \(error.localizedDescription)")
             return .failure(.jsonGenerationFailed(error))
         }
     }
-    
-    // MARK: - PDF Export  
+
+    // MARK: - PDF Export (Updated to use new Receipt structure)
     func exportToPDF(receipts: [Receipt], taxSummary: TaxSummary) -> Result<URL, ExportError> {
+         if receipts.isEmpty && taxSummary.receiptCount == 0 { return .failure(.noReceiptsToExport) }
         do {
             let pdfData = try generateTaxPDFReport(receipts: receipts, summary: taxSummary)
             let fileName = "tax_report_\(dateString()).pdf"
             let url = try writeToTemporaryFile(data: pdfData, fileName: fileName)
-            
+
             print("✅ ExportService: PDF export successful")
             return .success(url)
-            
+        } catch let error as ExportError {
+            print("❌ ExportService: PDF export failed - \(error.localizedDescription)")
+            return .failure(error)
         } catch {
-            print("❌ ExportService: PDF export failed - \(error)")
+            print("❌ ExportService: PDF export failed - \(error.localizedDescription)")
             return .failure(.pdfGenerationFailed(error))
         }
     }
-    
+
     private func generateTaxPDFReport(receipts: [Receipt], summary: TaxSummary) throws -> Data {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792)) // Letter size
-        
+
         let data = renderer.pdfData { context in
-            context.beginPage()
-            
-            var yPosition: CGFloat = 50
-            
-            // Title
-            let titleAttributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.boldSystemFont(ofSize: 24),
-                .foregroundColor: UIColor.black
-            ]
-            let title = "Tax Receipt Report - \(summary.dateRange.rawValue)"
-            title.draw(at: CGPoint(x: 50, y: yPosition), withAttributes: titleAttributes)
-            yPosition += 40
-            
-            // Summary section
-            let headerAttributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.boldSystemFont(ofSize: 16),
-                .foregroundColor: UIColor.black
-            ]
-            let bodyAttributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: 12),
-                .foregroundColor: UIColor.black
-            ]
-            
-            "Summary".draw(at: CGPoint(x: 50, y: yPosition), withAttributes: headerAttributes)
-            yPosition += 25
-            
-            let summaryText = """
-            Total Receipts: \(summary.receiptCount)
-            Total Deductions: \(summary.formattedTotalDeductions)
-            Needs Review: \(summary.needsReviewCount)
-            Completion: \(String(format: "%.1f", summary.completionPercentage * 100))%
-            """
-            
-            summaryText.draw(in: CGRect(x: 50, y: yPosition, width: 500, height: 80), withAttributes: bodyAttributes)
-            yPosition += 100
-            
-            // Category breakdown
-            "Category Breakdown".draw(at: CGPoint(x: 50, y: yPosition), withAttributes: headerAttributes)
-            yPosition += 25
-            
-            for (category, amount) in summary.categoryBreakdown.sorted(by: { $0.value > $1.value }) {
-                let formatter = NumberFormatter()
-                formatter.numberStyle = .currency
-                let amountStr = formatter.string(from: NSNumber(value: amount)) ?? "$0.00"
-                
-                let categoryLine = "\(category): \(amountStr)"
-                categoryLine.draw(at: CGPoint(x: 70, y: yPosition), withAttributes: bodyAttributes)
-                yPosition += 20
-                
-                if yPosition > 700 { // New page if needed
+            var yPosition: CGFloat = 30 // Start a bit lower
+            let leftMargin: CGFloat = 50
+            let rightMargin: CGFloat = 50
+            let contentWidth = 612 - leftMargin - rightMargin
+
+            // Helper to add text and update yPosition
+            func addText(_ text: String, font: UIFont, y: inout CGFloat, x: CGFloat = leftMargin, width: CGFloat = contentWidth, height: CGFloat = 20, alignment: NSTextAlignment = .left) {
+                if y + height > 792 - 50 { // Check for page break
                     context.beginPage()
-                    yPosition = 50
+                    y = 30
                 }
+                text.draw(in: CGRect(x: x, y: y, width: width, height: height),
+                          withAttributes: [.font: font, .paragraphStyle: { let style = NSMutableParagraphStyle(); style.alignment = alignment; return style }()])
+                y += height
             }
-            
-            // Receipt details (first page summary)
-            yPosition += 20
-            "Receipt Details".draw(at: CGPoint(x: 50, y: yPosition), withAttributes: headerAttributes)
-            yPosition += 25
-            
-            let detailsNote = "Detailed receipt information is available in the accompanying CSV export file."
-            detailsNote.draw(in: CGRect(x: 50, y: yPosition, width: 500, height: 40), withAttributes: bodyAttributes)
+
+            addText("Tax Receipt Report - \(summary.dateRangeString)", font: .boldSystemFont(ofSize: 20), y: &yPosition, alignment: .center)
+            yPosition += 10 // Space after title
+
+            addText("Summary", font: .boldSystemFont(ofSize: 16), y: &yPosition)
+            yPosition += 5
+
+            addText("Total Receipts Analyzed: \(summary.receiptCount)", font: .systemFont(ofSize: 12), y: &yPosition)
+            addText("Total Deductions Claimed: \(summary.formattedTotalDeductions)", font: .systemFont(ofSize: 12), y: &yPosition)
+            addText("Receipts Needing Review: \(summary.needsReviewCount)", font: .systemFont(ofSize: 12), y: &yPosition)
+            addText("Data Completion: \(String(format: "%.1f%%", summary.completionPercentage * 100))", font: .systemFont(ofSize: 12), y: &yPosition)
+            yPosition += 15
+
+            addText("Category Breakdown", font: .boldSystemFont(ofSize: 16), y: &yPosition)
+            yPosition += 5
+
+            for (category, amount) in summary.categoryBreakdown.sorted(by: { $0.value > $1.value }) {
+                let amountStr = (NumberFormatter.currencyFormatter).string(from: NSNumber(value: amount)) ?? "$0.00"
+                addText("\(category): \(amountStr)", font: .systemFont(ofSize: 12), y: &yPosition, x: leftMargin + 10)
+            }
+            yPosition += 15
+
+            addText("Receipt Details", font: .boldSystemFont(ofSize: 16), y: &yPosition)
+            yPosition += 5
+
+            let tableHeaders = ["Date", "Vendor", "Category", "Amount"]
+            let columnWidths: [CGFloat] = [100, 180, 120, 100]
+            var currentX: CGFloat = leftMargin
+
+            for (i, header) in tableHeaders.enumerated() {
+                addText(header, font: .boldSystemFont(ofSize: 10), y: &yPosition, x: currentX, width: columnWidths[i])
+                currentX += columnWidths[i]
+            }
+            yPosition -= 20 // Adjust because addText increments y after drawing header row (hacky)
+            yPosition += 20 // Line for header
+
+            // Line under headers
+            context.cgContext.move(to: CGPoint(x: leftMargin, y: yPosition))
+            context.cgContext.addLine(to: CGPoint(x: contentWidth + leftMargin, y: yPosition))
+            context.cgContext.strokePath()
+            yPosition += 5
+
+
+            for receipt in summary.receipts { // Use receipts from summary
+                currentX = leftMargin
+                let dateStr = receipt.parsedDate != nil ? AppDateFormatter.shared.string(from: receipt.parsedDate!, format: "yyyy/MM/dd") : "N/A"
+                let vendorStr = receipt.primaryVendorName ?? "N/A"
+                let categoryStr = receipt.displayCategory ?? "N/A"
+                let amountStr = receipt.totals?.total.map { (NumberFormatter.currencyFormatter).string(from: NSNumber(value: $0)) ?? "N/A" } ?? "N/A"
+
+                let rowData = [dateStr, vendorStr, categoryStr, amountStr]
+
+                for (i, data) in rowData.enumerated() {
+                    addText(data, font: .systemFont(ofSize: 9), y: &yPosition, x: currentX, width: columnWidths[i], height: 15)
+                    currentX += columnWidths[i]
+                }
+                yPosition -= 15 // Decrement because addText increments y for each cell, but we want one row height increment
+                 yPosition += 15 // Actual row height increment
+            }
         }
-        
         return data
     }
-    
+
     // MARK: - Utility Methods
     private func writeToTemporaryFile(content: String, fileName: String) throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         let fileURL = tempDir.appendingPathComponent(fileName)
-        
+
         try content.write(to: fileURL, atomically: true, encoding: .utf8)
         return fileURL
     }
-    
+
     private func writeToTemporaryFile(data: Data, fileName: String) throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         let fileURL = tempDir.appendingPathComponent(fileName)
-        
+
         try data.write(to: fileURL)
         return fileURL
     }
-    
+
     private func dateString() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HHmm"
         return formatter.string(from: Date())
     }
-    
+
     private func formatDateForCSV(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss" // More standard CSV date format
         return formatter.string(from: date)
     }
-    
-    // MARK: - Share Sheet Support
-    func createShareableDocument(from url: URL, format: ExportFormat) -> ShareableDocument {
-        return ShareableDocument(
-            url: url,
-            format: format,
-            title: "Receipt Export - \(format.rawValue)"
-        )
+
+    // MARK: - Share Sheet Support (Not directly used if ShareSheet is generic)
+    // This struct might be redundant if ShareSheet directly takes URL.
+    // Keeping it if specific metadata is needed later.
+    struct ShareableDocument {
+        let url: URL
+        let format: ExportService.ExportFormat // Could be used for UTType or email subject
+        let title: String // For email subject or activity items
     }
 }
 
 // MARK: - Export Models
-struct TaxExportData: Codable {
+// Container for JSON export, includes summary and receipts
+struct JSONExportContainer: Codable {
     let exportDate: Date
-    let dateRange: String
-    let totalReceipts: Int
-    let totalAmount: Double
-    let summary: TaxSummary?
-    let receipts: [ReceiptExportModel]
-    
+    let summary: TaxSummary? // TaxSummary is Codable
+    let receipts: [Receipt]  // Receipt is Codable
+
     enum CodingKeys: String, CodingKey {
         case exportDate = "export_date"
-        case dateRange = "date_range"
-        case totalReceipts = "total_receipts"
-        case totalAmount = "total_amount"
         case summary, receipts
     }
 }
 
-struct ReceiptExportModel: Codable {
-    let id: String
-    let date: Date?
-    let vendor: String?
-    let category: String?
-    let taxCategory: String?
-    let amount: Double?
-    let subtotal: Double?
-    let taxAmount: Double?
-    let tipAmount: Double?
-    let taxRate: Double?
-    let paymentMethod: String?
-    let location: String?
-    let businessPurpose: String?
-    let transactionId: String?
-    let vendorTaxId: String?
-    let mileage: String?
-    let vehicleInfo: String?
-    let receiptType: String?
-    let confidenceScore: Double?
-    let needsReview: Bool
-    let notes: String?
-    let createdAt: Date
-    
-    init(from receipt: Receipt) {
-        self.id = receipt.id.uuidString
-        self.date = receipt.date
-        self.vendor = receipt.vendor
-        self.category = receipt.category
-        self.taxCategory = receipt.taxCategory
-        self.amount = receipt.amount
-        self.subtotal = receipt.subtotal
-        self.taxAmount = receipt.taxAmount
-        self.tipAmount = receipt.tipAmount
-        self.taxRate = receipt.taxRate
-        self.paymentMethod = receipt.paymentMethod
-        self.location = receipt.location
-        self.businessPurpose = receipt.businessPurpose
-        self.transactionId = receipt.transactionId
-        self.vendorTaxId = receipt.vendorTaxId
-        self.mileage = receipt.mileage
-        self.vehicleInfo = receipt.vehicleInfo
-        self.receiptType = receipt.receiptType
-        self.confidenceScore = receipt.confidenceScore
-        self.needsReview = receipt.needsReview
-        self.notes = receipt.notes
-        self.createdAt = receipt.createdAt
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case id, date, vendor, category, amount, subtotal, notes
-        case taxCategory = "tax_category"
-        case taxAmount = "tax_amount"
-        case tipAmount = "tip_amount"
-        case taxRate = "tax_rate"
-        case paymentMethod = "payment_method"
-        case location, businessPurpose = "business_purpose"
-        case transactionId = "transaction_id"
-        case vendorTaxId = "vendor_tax_id"
-        case mileage, vehicleInfo = "vehicle_info"
-        case receiptType = "receipt_type"
-        case confidenceScore = "confidence_score"
-        case needsReview = "needs_review"
-        case createdAt = "created_at"
-    }
-}
-
-// Make TaxSummary Codable
+// TaxSummary is now Codable (moved from ReceiptListViewModel for better cohesion if used here)
+// Ensure TaxSummary.DateRange is string representable or Codable itself.
+// ReceiptListViewModel.DateRange is an enum with rawValue String, so it's fine.
 extension TaxSummary: Codable {
     enum CodingKeys: String, CodingKey {
-        case dateRange = "date_range"
+        case dateRangeString = "date_range" // Use the string representation
         case totalDeductions = "total_deductions"
         case categoryBreakdown = "category_breakdown"
         case receiptCount = "receipt_count"
         case needsReviewCount = "needs_review_count"
-        case completionPercentage = "completion_percentage"
+        // receipts are not part of summary JSON, but part of main JSONExportContainer
     }
-    
+
+    // Custom Encodable if needed (e.g. if dateRange was not String rawValue)
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(dateRange.rawValue, forKey: .dateRange)
+        try container.encode(dateRangeString, forKey: .dateRangeString)
         try container.encode(totalDeductions, forKey: .totalDeductions)
         try container.encode(categoryBreakdown, forKey: .categoryBreakdown)
         try container.encode(receiptCount, forKey: .receiptCount)
         try container.encode(needsReviewCount, forKey: .needsReviewCount)
-        try container.encode(completionPercentage, forKey: .completionPercentage)
     }
-    
-    init(from decoder: Decoder) throws {
+
+    // Custom Decodable if needed
+     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let dateRangeString = try container.decode(String.self, forKey: .dateRange)
-        
-        // This is a simplified reconstruction - in practice you'd want better handling
-        self.dateRange = ReceiptListViewModel.DateRange(rawValue: dateRangeString) ?? .all
-        self.totalDeductions = try container.decode(Double.self, forKey: .totalDeductions)
-        self.categoryBreakdown = try container.decode([String: Double].self, forKey: .categoryBreakdown)
-        self.receiptCount = try container.decode(Int.self, forKey: .receiptCount)
-        self.needsReviewCount = try container.decode(Int.self, forKey: .needsReviewCount)
-        self.receipts = [] // Would need to be included separately
+        dateRangeString = try container.decode(String.self, forKey: .dateRangeString)
+        totalDeductions = try container.decode(Double.self, forKey: .totalDeductions)
+        categoryBreakdown = try container.decode([String: Double].self, forKey: .categoryBreakdown)
+        receiptCount = try container.decode(Int.self, forKey: .receiptCount)
+        needsReviewCount = try container.decode(Int.self, forKey: .needsReviewCount)
+        receipts = [] // Receipts are part of the parent container, not summary itself
     }
 }
 
-struct ShareableDocument {
-    let url: URL
-    let format: ExportService.ExportFormat
-    let title: String
-}
 
 // MARK: - Error Types
-enum ExportError: Error, LocalizedError {
+enum ExportError: Error, LocalizedError, Identifiable { // Added Identifiable
     case csvGenerationFailed(Error)
     case jsonGenerationFailed(Error)
     case pdfGenerationFailed(Error)
     case fileWriteFailed(Error)
     case noReceiptsToExport
-    
+    case unimplementedFormat(String) // New case
+
+    var id: String { // Computed id for Identifiable conformance
+        switch self {
+        case .csvGenerationFailed: return "csvGenerationFailed"
+        case .jsonGenerationFailed: return "jsonGenerationFailed"
+        case .pdfGenerationFailed: return "pdfGenerationFailed"
+        case .fileWriteFailed: return "fileWriteFailed"
+        case .noReceiptsToExport: return "noReceiptsToExport"
+        case .unimplementedFormat(let type): return "unimplementedFormat_\(type)"
+        }
+    }
+
     var errorDescription: String? {
         switch self {
         case .csvGenerationFailed(let error):
@@ -419,9 +446,21 @@ enum ExportError: Error, LocalizedError {
         case .pdfGenerationFailed(let error):
             return "Failed to generate PDF: \(error.localizedDescription)"
         case .fileWriteFailed(let error):
-            return "Failed to write file: \(error.localizedDescription)"
+            return "Failed to write export file: \(error.localizedDescription)"
         case .noReceiptsToExport:
-            return "No receipts available to export"
+            return "There are no receipts matching the current filter to export."
+        case .unimplementedFormat(let formatType):
+            return "Export to \(formatType) is not currently implemented."
         }
     }
+}
+
+// Helper extension for currency formatting in PDF
+extension NumberFormatter {
+    static let currencyFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = Locale.current
+        return formatter
+    }()
 }
