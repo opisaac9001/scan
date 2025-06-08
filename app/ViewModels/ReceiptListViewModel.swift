@@ -170,7 +170,7 @@ class ReceiptListViewModel: ObservableObject {
     private func applyFiltersAndSort(
         receipts: [Receipt],
         searchText: String,
-        category filterCategory: String, // Renamed to avoid confusion with receipt.category
+        category filterCategory: String,
         dateRange: DateRange,
         needsReview: Bool,
         minAmount: Double?,
@@ -180,7 +180,6 @@ class ReceiptListViewModel: ObservableObject {
 
         var localFilteredReceipts = receipts
 
-        // Search Text Filter
         if !searchText.isEmpty {
             let lowercasedSearchText = searchText.lowercased()
             localFilteredReceipts = localFilteredReceipts.filter { receipt in
@@ -210,14 +209,11 @@ class ReceiptListViewModel: ObservableObject {
             }
         }
 
-        // Category Filter (Updated Logic)
         if filterCategory != "All" {
             localFilteredReceipts = localFilteredReceipts.filter { receipt in
-                // Check overall receipt display category (case-insensitive)
                 if receipt.displayCategory?.localizedCaseInsensitiveCompare(filterCategory) == .orderedSame {
                     return true
                 }
-                // Check item-level expense categories (case-insensitive)
                 if let items = receipt.items {
                     for item in items {
                         if item.expense_category?.localizedCaseInsensitiveCompare(filterCategory) == .orderedSame {
@@ -229,7 +225,6 @@ class ReceiptListViewModel: ObservableObject {
             }
         }
 
-        // Date Range Filter
         if let dateInterval = dateRange.dateInterval {
             localFilteredReceipts = localFilteredReceipts.filter { receipt in
                 guard let receiptDate = receipt.parsedDate else { return false }
@@ -237,7 +232,6 @@ class ReceiptListViewModel: ObservableObject {
             }
         }
 
-        // Amount Range Filters
         if let minAmount = minAmount {
             localFilteredReceipts = localFilteredReceipts.filter { ($0.totals?.total ?? 0) >= minAmount }
         }
@@ -246,7 +240,6 @@ class ReceiptListViewModel: ObservableObject {
             localFilteredReceipts = localFilteredReceipts.filter { ($0.totals?.total ?? 0) <= maxAmount }
         }
 
-        // Needs Review Filter
         if needsReview {
             localFilteredReceipts = localFilteredReceipts.filter { $0.needsReview }
         }
@@ -331,8 +324,7 @@ class ReceiptListViewModel: ObservableObject {
             case .pdf:
                 result = exportService.exportToPDF(receipts: receiptsToExport, taxSummary: summary)
             case .excel:
-                print("⚠️ Export format .excel not implemented in ExportService.")
-                result = .failure(.unimplementedFormat(format.rawValue))
+                result = exportService.exportToExcel(receipts: receiptsToExport) // Call the new stubbed method
             }
 
             await MainActor.run {

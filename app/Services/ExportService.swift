@@ -34,18 +34,12 @@ class ExportService: ObservableObject {
     // MARK: - Export Options (Currently not used directly by export methods, but can be expanded)
     struct ExportOptions {
         let format: ExportFormat
-        // Add other options like date ranges, specific fields to include, etc.
-        // For example:
-        // let dateRange: DateInterval?
-        // let includeImages: Bool
-
         static func `default`(for format: ExportFormat) -> ExportOptions {
             ExportOptions(format: format)
         }
     }
 
     // MARK: - CSV Export
-    // Updated to use new Receipt structure
     func exportToCSV(receipts: [Receipt]) -> Result<URL, ExportError> {
         if receipts.isEmpty { return .failure(.noReceiptsToExport) }
         do {
@@ -67,8 +61,6 @@ class ExportService: ObservableObject {
 
     private func generateCSVContent(receipts: [Receipt]) throws -> String {
         var csvLines: [String] = []
-
-        // Headers based on new Receipt structure
         let headers = [
             "ID", "Date", "Time", "Vendor Name", "Store Name", "Address", "City", "State", "Zip", "Phone", "Website", "Slogan", "Vendor Tax ID",
             "Transaction ID", "Payment Method", "Card Ending", "Auth Code", "Cashier", "Register", "Customer Name", "Customer Number", "Return Policy",
@@ -78,110 +70,53 @@ class ExportService: ObservableObject {
             "Raw OCR Text", "Confidence Score", "Needs Review (Receipt)", "Created At", "Updated At"
         ]
         csvLines.append(headers.joined(separator: ","))
-
         let sortedReceipts = receipts.sorted { ($0.parsedDate ?? Date.distantPast) < ($1.parsedDate ?? Date.distantPast) }
 
         for receipt in sortedReceipts {
-            // For items, create one row per item, repeating receipt-level info
             if let items = receipt.items, !items.isEmpty {
                 for item in items {
                     let row = [
-                        csvEscape(receipt.id.uuidString),
-                        csvEscape(receipt.transactionInfo?.date ?? ""),
-                        csvEscape(receipt.transactionInfo?.time ?? ""),
-                        csvEscape(receipt.vendorInfo?.vendor ?? ""),
-                        csvEscape(receipt.vendorInfo?.store_name ?? ""),
-                        csvEscape(receipt.vendorInfo?.address ?? ""),
-                        csvEscape(receipt.vendorInfo?.city ?? ""),
-                        csvEscape(receipt.vendorInfo?.state ?? ""),
-                        csvEscape(receipt.vendorInfo?.zip_code ?? ""),
-                        csvEscape(receipt.vendorInfo?.phone ?? ""),
-                        csvEscape(receipt.vendorInfo?.website ?? ""),
-                        csvEscape(receipt.vendorInfo?.slogan ?? ""),
-                        csvEscape(receipt.vendorInfo?.tax_id ?? ""),
-                        csvEscape(receipt.transactionInfo?.transaction_id ?? ""),
-                        csvEscape(receipt.transactionInfo?.payment_method ?? ""),
-                        csvEscape(receipt.transactionInfo?.card_ending ?? ""),
-                        csvEscape(receipt.transactionInfo?.auth_code ?? ""),
-                        csvEscape(receipt.transactionInfo?.cashier ?? ""),
-                        csvEscape(receipt.transactionInfo?.register ?? ""),
-                        csvEscape(receipt.transactionInfo?.customer_name ?? ""),
-                        csvEscape(receipt.transactionInfo?.customer_number ?? ""),
-                        csvEscape(receipt.transactionInfo?.return_policy ?? ""),
-                        csvEscape(receipt.receiptType ?? ""),
-                        String(receipt.totals?.subtotal ?? 0.0),
-                        String(receipt.totals?.tax ?? 0.0),
-                        String(receipt.totals?.tax_rate ?? 0.0),
-                        String(receipt.totals?.tip ?? 0.0),
-                        String(receipt.totals?.discount ?? 0.0),
-                        String(receipt.totals?.total ?? 0.0),
-                        csvEscape(item.description ?? ""),
-                        String(item.quantity ?? 0.0),
-                        String(item.unit_price ?? 0.0),
-                        String(item.total_price ?? 0.0),
-                        csvEscape(item.expense_category ?? ""),
-                        csvEscape(item.tax_category ?? ""),
-                        csvEscape(item.sku ?? ""),
-                        String(item.discount ?? 0.0),
-                        csvEscape(item.codes?.joined(separator: ";") ?? ""),
-                        item.is_expense.map { $0 ? "Yes" : "No" } ?? "",
-                        item.needs_review.map { $0 ? "Yes" : "No" } ?? "",
-                        csvEscape(receipt.notes?.description ?? ""),
-                        csvEscape(receipt.notes?.handwriting ?? ""),
-                        csvEscape(receipt.notes?.vehicle ?? ""),
-                        csvEscape(receipt.notes?.mileage ?? ""),
-                        csvEscape(receipt.notes?.trip ?? ""),
-                        csvEscape(receipt.notes?.business_purpose ?? ""),
-                        csvEscape(receipt.rawOCRText ?? ""),
-                        String(receipt.confidenceScore ?? 0.0),
-                        receipt.needsReview ? "Yes" : "No",
-                        formatDateForCSV(receipt.createdAt),
+                        csvEscape(receipt.id.uuidString), csvEscape(receipt.transactionInfo?.date ?? ""), csvEscape(receipt.transactionInfo?.time ?? ""),
+                        csvEscape(receipt.vendorInfo?.vendor ?? ""), csvEscape(receipt.vendorInfo?.store_name ?? ""), csvEscape(receipt.vendorInfo?.address ?? ""),
+                        csvEscape(receipt.vendorInfo?.city ?? ""), csvEscape(receipt.vendorInfo?.state ?? ""), csvEscape(receipt.vendorInfo?.zip_code ?? ""),
+                        csvEscape(receipt.vendorInfo?.phone ?? ""), csvEscape(receipt.vendorInfo?.website ?? ""), csvEscape(receipt.vendorInfo?.slogan ?? ""),
+                        csvEscape(receipt.vendorInfo?.tax_id ?? ""), csvEscape(receipt.transactionInfo?.transaction_id ?? ""),
+                        csvEscape(receipt.transactionInfo?.payment_method ?? ""), csvEscape(receipt.transactionInfo?.card_ending ?? ""),
+                        csvEscape(receipt.transactionInfo?.auth_code ?? ""), csvEscape(receipt.transactionInfo?.cashier ?? ""),
+                        csvEscape(receipt.transactionInfo?.register ?? ""), csvEscape(receipt.transactionInfo?.customer_name ?? ""),
+                        csvEscape(receipt.transactionInfo?.customer_number ?? ""), csvEscape(receipt.transactionInfo?.return_policy ?? ""),
+                        csvEscape(receipt.receiptType ?? ""), String(receipt.totals?.subtotal ?? 0.0), String(receipt.totals?.tax ?? 0.0),
+                        String(receipt.totals?.tax_rate ?? 0.0), String(receipt.totals?.tip ?? 0.0), String(receipt.totals?.discount ?? 0.0),
+                        String(receipt.totals?.total ?? 0.0), csvEscape(item.description ?? ""), String(item.quantity ?? 0.0),
+                        String(item.unit_price ?? 0.0), String(item.total_price ?? 0.0), csvEscape(item.expense_category ?? ""),
+                        csvEscape(item.tax_category ?? ""), csvEscape(item.sku ?? ""), String(item.discount ?? 0.0),
+                        csvEscape(item.codes?.joined(separator: ";") ?? ""), item.is_expense.map { $0 ? "Yes" : "No" } ?? "",
+                        item.needs_review.map { $0 ? "Yes" : "No" } ?? "", csvEscape(receipt.notes?.description ?? ""),
+                        csvEscape(receipt.notes?.handwriting ?? ""), csvEscape(receipt.notes?.vehicle ?? ""), csvEscape(receipt.notes?.mileage ?? ""),
+                        csvEscape(receipt.notes?.trip ?? ""), csvEscape(receipt.notes?.business_purpose ?? ""), csvEscape(receipt.rawOCRText ?? ""),
+                        String(receipt.confidenceScore ?? 0.0), receipt.needsReview ? "Yes" : "No", formatDateForCSV(receipt.createdAt),
                         formatDateForCSV(receipt.updatedAt)
-                    ].map { $0 } // Ensure all are strings before joining
+                    ].map { $0 }
                     csvLines.append(row.joined(separator: ","))
                 }
-            } else { // No items, one row for the receipt
+            } else {
                  let row = [
-                    csvEscape(receipt.id.uuidString),
-                    csvEscape(receipt.transactionInfo?.date ?? ""),
-                    csvEscape(receipt.transactionInfo?.time ?? ""),
-                    csvEscape(receipt.vendorInfo?.vendor ?? ""),
-                    csvEscape(receipt.vendorInfo?.store_name ?? ""),
-                    csvEscape(receipt.vendorInfo?.address ?? ""),
-                    csvEscape(receipt.vendorInfo?.city ?? ""),
-                    csvEscape(receipt.vendorInfo?.state ?? ""),
-                    csvEscape(receipt.vendorInfo?.zip_code ?? ""),
-                    csvEscape(receipt.vendorInfo?.phone ?? ""),
-                    csvEscape(receipt.vendorInfo?.website ?? ""),
-                    csvEscape(receipt.vendorInfo?.slogan ?? ""),
-                    csvEscape(receipt.vendorInfo?.tax_id ?? ""),
-                    csvEscape(receipt.transactionInfo?.transaction_id ?? ""),
-                    csvEscape(receipt.transactionInfo?.payment_method ?? ""),
-                    csvEscape(receipt.transactionInfo?.card_ending ?? ""),
-                    csvEscape(receipt.transactionInfo?.auth_code ?? ""),
-                    csvEscape(receipt.transactionInfo?.cashier ?? ""),
-                    csvEscape(receipt.transactionInfo?.register ?? ""),
-                    csvEscape(receipt.transactionInfo?.customer_name ?? ""),
-                    csvEscape(receipt.transactionInfo?.customer_number ?? ""),
-                    csvEscape(receipt.transactionInfo?.return_policy ?? ""),
-                    csvEscape(receipt.receiptType ?? ""),
-                    String(receipt.totals?.subtotal ?? 0.0),
-                    String(receipt.totals?.tax ?? 0.0),
-                    String(receipt.totals?.tax_rate ?? 0.0),
-                    String(receipt.totals?.tip ?? 0.0),
-                    String(receipt.totals?.discount ?? 0.0),
-                    String(receipt.totals?.total ?? 0.0),
-                    "", "", "", "", "", "", "", "", "", "", "", // Empty item fields
-                    csvEscape(receipt.notes?.description ?? ""),
-                    csvEscape(receipt.notes?.handwriting ?? ""),
-                    csvEscape(receipt.notes?.vehicle ?? ""),
-                    csvEscape(receipt.notes?.mileage ?? ""),
-                    csvEscape(receipt.notes?.trip ?? ""),
-                    csvEscape(receipt.notes?.business_purpose ?? ""),
-                    csvEscape(receipt.rawOCRText ?? ""),
-                    String(receipt.confidenceScore ?? 0.0),
-                    receipt.needsReview ? "Yes" : "No",
-                    formatDateForCSV(receipt.createdAt),
+                    csvEscape(receipt.id.uuidString), csvEscape(receipt.transactionInfo?.date ?? ""), csvEscape(receipt.transactionInfo?.time ?? ""),
+                    csvEscape(receipt.vendorInfo?.vendor ?? ""), csvEscape(receipt.vendorInfo?.store_name ?? ""), csvEscape(receipt.vendorInfo?.address ?? ""),
+                    csvEscape(receipt.vendorInfo?.city ?? ""), csvEscape(receipt.vendorInfo?.state ?? ""), csvEscape(receipt.vendorInfo?.zip_code ?? ""),
+                    csvEscape(receipt.vendorInfo?.phone ?? ""), csvEscape(receipt.vendorInfo?.website ?? ""), csvEscape(receipt.vendorInfo?.slogan ?? ""),
+                    csvEscape(receipt.vendorInfo?.tax_id ?? ""), csvEscape(receipt.transactionInfo?.transaction_id ?? ""),
+                    csvEscape(receipt.transactionInfo?.payment_method ?? ""), csvEscape(receipt.transactionInfo?.card_ending ?? ""),
+                    csvEscape(receipt.transactionInfo?.auth_code ?? ""), csvEscape(receipt.transactionInfo?.cashier ?? ""),
+                    csvEscape(receipt.transactionInfo?.register ?? ""), csvEscape(receipt.transactionInfo?.customer_name ?? ""),
+                    csvEscape(receipt.transactionInfo?.customer_number ?? ""), csvEscape(receipt.transactionInfo?.return_policy ?? ""),
+                    csvEscape(receipt.receiptType ?? ""), String(receipt.totals?.subtotal ?? 0.0), String(receipt.totals?.tax ?? 0.0),
+                    String(receipt.totals?.tax_rate ?? 0.0), String(receipt.totals?.tip ?? 0.0), String(receipt.totals?.discount ?? 0.0),
+                    String(receipt.totals?.total ?? 0.0), "", "", "", "", "", "", "", "", "", "", "",
+                    csvEscape(receipt.notes?.description ?? ""), csvEscape(receipt.notes?.handwriting ?? ""),
+                    csvEscape(receipt.notes?.vehicle ?? ""), csvEscape(receipt.notes?.mileage ?? ""), csvEscape(receipt.notes?.trip ?? ""),
+                    csvEscape(receipt.notes?.business_purpose ?? ""), csvEscape(receipt.rawOCRText ?? ""),
+                    String(receipt.confidenceScore ?? 0.0), receipt.needsReview ? "Yes" : "No", formatDateForCSV(receipt.createdAt),
                     formatDateForCSV(receipt.updatedAt)
                 ].map { $0 }
                 csvLines.append(row.joined(separator: ","))
@@ -197,28 +132,23 @@ class ExportService: ObservableObject {
         return text
     }
 
-    // MARK: - JSON Export (Updated to use new Receipt structure)
+    // MARK: - JSON Export
     func exportToJSON(receipts: [Receipt], taxSummary: TaxSummary? = nil) -> Result<URL, ExportError> {
-        if receipts.isEmpty && taxSummary == nil { return .failure(.noReceiptsToExport) } // Allow export if only summary exists
+        if receipts.isEmpty && taxSummary == nil { return .failure(.noReceiptsToExport) }
         do {
-            // Use the Receipt struct directly as it's Codable and has the new structure
             let exportData = JSONExportContainer(
                 exportDate: Date(),
-                summary: taxSummary, // TaxSummary is already Codable
-                receipts: receipts  // Receipt is already Codable with the new structure
+                summary: taxSummary,
+                receipts: receipts
             )
-
             let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601 // Dates in Receipt are already Date type
+            encoder.dateEncodingStrategy = .iso8601
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-
             let jsonData = try encoder.encode(exportData)
             let fileName = "receipts_export_\(dateString()).json"
             let url = try writeToTemporaryFile(data: jsonData, fileName: fileName)
-
             print("✅ ExportService: JSON export successful - \(receipts.count) receipts")
             return .success(url)
-
         } catch let error as ExportError {
             print("❌ ExportService: JSON export failed - \(error.localizedDescription)")
             return .failure(error)
@@ -228,14 +158,13 @@ class ExportService: ObservableObject {
         }
     }
 
-    // MARK: - PDF Export (Updated to use new Receipt structure)
+    // MARK: - PDF Export
     func exportToPDF(receipts: [Receipt], taxSummary: TaxSummary) -> Result<URL, ExportError> {
          if receipts.isEmpty && taxSummary.receiptCount == 0 { return .failure(.noReceiptsToExport) }
         do {
             let pdfData = try generateTaxPDFReport(receipts: receipts, summary: taxSummary)
             let fileName = "tax_report_\(dateString()).pdf"
             let url = try writeToTemporaryFile(data: pdfData, fileName: fileName)
-
             print("✅ ExportService: PDF export successful")
             return .success(url)
         } catch let error as ExportError {
@@ -247,18 +176,28 @@ class ExportService: ObservableObject {
         }
     }
 
-    private func generateTaxPDFReport(receipts: [Receipt], summary: TaxSummary) throws -> Data {
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792)) // Letter size
+    // MARK: - Excel Export (Stubbed)
+    func exportToExcel(receipts: [Receipt]) -> Result<URL, ExportError> {
+        if receipts.isEmpty {
+            return .failure(.noReceiptsToExport)
+        }
+        // For now, Excel export is not implemented.
+        // A real implementation would involve creating an .xlsx file,
+        // possibly using a third-party library if direct generation is complex.
+        print("ℹ️ ExportService: Excel export requested but not implemented.")
+        return .failure(.unimplementedFormat("Excel (.xlsx)"))
+    }
 
+    private func generateTaxPDFReport(receipts: [Receipt], summary: TaxSummary) throws -> Data {
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792))
         let data = renderer.pdfData { context in
-            var yPosition: CGFloat = 30 // Start a bit lower
+            var yPosition: CGFloat = 30
             let leftMargin: CGFloat = 50
             let rightMargin: CGFloat = 50
             let contentWidth = 612 - leftMargin - rightMargin
 
-            // Helper to add text and update yPosition
             func addText(_ text: String, font: UIFont, y: inout CGFloat, x: CGFloat = leftMargin, width: CGFloat = contentWidth, height: CGFloat = 20, alignment: NSTextAlignment = .left) {
-                if y + height > 792 - 50 { // Check for page break
+                if y + height > 792 - 50 {
                     context.beginPage()
                     y = 30
                 }
@@ -268,7 +207,7 @@ class ExportService: ObservableObject {
             }
 
             addText("Tax Receipt Report - \(summary.dateRangeString)", font: .boldSystemFont(ofSize: 20), y: &yPosition, alignment: .center)
-            yPosition += 10 // Space after title
+            yPosition += 10
 
             addText("Summary", font: .boldSystemFont(ofSize: 16), y: &yPosition)
             yPosition += 5
@@ -299,17 +238,15 @@ class ExportService: ObservableObject {
                 addText(header, font: .boldSystemFont(ofSize: 10), y: &yPosition, x: currentX, width: columnWidths[i])
                 currentX += columnWidths[i]
             }
-            yPosition -= 20 // Adjust because addText increments y after drawing header row (hacky)
-            yPosition += 20 // Line for header
+            yPosition -= 20
+            yPosition += 20
 
-            // Line under headers
             context.cgContext.move(to: CGPoint(x: leftMargin, y: yPosition))
             context.cgContext.addLine(to: CGPoint(x: contentWidth + leftMargin, y: yPosition))
             context.cgContext.strokePath()
             yPosition += 5
 
-
-            for receipt in summary.receipts { // Use receipts from summary
+            for receipt in summary.receipts {
                 currentX = leftMargin
                 let dateStr = receipt.parsedDate != nil ? AppDateFormatter.shared.string(from: receipt.parsedDate!, format: "yyyy/MM/dd") : "N/A"
                 let vendorStr = receipt.primaryVendorName ?? "N/A"
@@ -322,8 +259,8 @@ class ExportService: ObservableObject {
                     addText(data, font: .systemFont(ofSize: 9), y: &yPosition, x: currentX, width: columnWidths[i], height: 15)
                     currentX += columnWidths[i]
                 }
-                yPosition -= 15 // Decrement because addText increments y for each cell, but we want one row height increment
-                 yPosition += 15 // Actual row height increment
+                yPosition -= 15
+                 yPosition += 15
             }
         }
         return data
@@ -333,7 +270,6 @@ class ExportService: ObservableObject {
     private func writeToTemporaryFile(content: String, fileName: String) throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         let fileURL = tempDir.appendingPathComponent(fileName)
-
         try content.write(to: fileURL, atomically: true, encoding: .utf8)
         return fileURL
     }
@@ -341,7 +277,6 @@ class ExportService: ObservableObject {
     private func writeToTemporaryFile(data: Data, fileName: String) throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         let fileURL = tempDir.appendingPathComponent(fileName)
-
         try data.write(to: fileURL)
         return fileURL
     }
@@ -354,26 +289,22 @@ class ExportService: ObservableObject {
 
     private func formatDateForCSV(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss" // More standard CSV date format
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         return formatter.string(from: date)
     }
 
-    // MARK: - Share Sheet Support (Not directly used if ShareSheet is generic)
-    // This struct might be redundant if ShareSheet directly takes URL.
-    // Keeping it if specific metadata is needed later.
     struct ShareableDocument {
         let url: URL
-        let format: ExportService.ExportFormat // Could be used for UTType or email subject
-        let title: String // For email subject or activity items
+        let format: ExportService.ExportFormat
+        let title: String
     }
 }
 
 // MARK: - Export Models
-// Container for JSON export, includes summary and receipts
 struct JSONExportContainer: Codable {
     let exportDate: Date
-    let summary: TaxSummary? // TaxSummary is Codable
-    let receipts: [Receipt]  // Receipt is Codable
+    let summary: TaxSummary?
+    let receipts: [Receipt]
 
     enum CodingKeys: String, CodingKey {
         case exportDate = "export_date"
@@ -381,20 +312,16 @@ struct JSONExportContainer: Codable {
     }
 }
 
-// TaxSummary is now Codable (moved from ReceiptListViewModel for better cohesion if used here)
-// Ensure TaxSummary.DateRange is string representable or Codable itself.
-// ReceiptListViewModel.DateRange is an enum with rawValue String, so it's fine.
 extension TaxSummary: Codable {
     enum CodingKeys: String, CodingKey {
-        case dateRangeString = "date_range" // Use the string representation
+        case dateRangeString = "date_range"
         case totalDeductions = "total_deductions"
         case categoryBreakdown = "category_breakdown"
         case receiptCount = "receipt_count"
         case needsReviewCount = "needs_review_count"
-        // receipts are not part of summary JSON, but part of main JSONExportContainer
+        case receipts
     }
 
-    // Custom Encodable if needed (e.g. if dateRange was not String rawValue)
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(dateRangeString, forKey: .dateRangeString)
@@ -402,9 +329,9 @@ extension TaxSummary: Codable {
         try container.encode(categoryBreakdown, forKey: .categoryBreakdown)
         try container.encode(receiptCount, forKey: .receiptCount)
         try container.encode(needsReviewCount, forKey: .needsReviewCount)
+        try container.encode(receipts, forKey: .receipts)
     }
 
-    // Custom Decodable if needed
      init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         dateRangeString = try container.decode(String.self, forKey: .dateRangeString)
@@ -412,21 +339,20 @@ extension TaxSummary: Codable {
         categoryBreakdown = try container.decode([String: Double].self, forKey: .categoryBreakdown)
         receiptCount = try container.decode(Int.self, forKey: .receiptCount)
         needsReviewCount = try container.decode(Int.self, forKey: .needsReviewCount)
-        receipts = [] // Receipts are part of the parent container, not summary itself
+        receipts = try container.decode([Receipt].self, forKey: .receipts)
     }
 }
 
-
 // MARK: - Error Types
-enum ExportError: Error, LocalizedError, Identifiable { // Added Identifiable
+enum ExportError: Error, LocalizedError, Identifiable {
     case csvGenerationFailed(Error)
     case jsonGenerationFailed(Error)
     case pdfGenerationFailed(Error)
     case fileWriteFailed(Error)
     case noReceiptsToExport
-    case unimplementedFormat(String) // New case
+    case unimplementedFormat(String)
 
-    var id: String { // Computed id for Identifiable conformance
+    var id: String {
         switch self {
         case .csvGenerationFailed: return "csvGenerationFailed"
         case .jsonGenerationFailed: return "jsonGenerationFailed"
@@ -455,7 +381,6 @@ enum ExportError: Error, LocalizedError, Identifiable { // Added Identifiable
     }
 }
 
-// Helper extension for currency formatting in PDF
 extension NumberFormatter {
     static let currencyFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
