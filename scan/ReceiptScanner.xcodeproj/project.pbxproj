@@ -1,0 +1,653 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		13A7D1C72C89E8F900123456 /* ReceiptScannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1C62C89E8F900123456 /* ReceiptScannerApp.swift */; };
+		13A7D1C92C89E8F900123456 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1C82C89E8F900123456 /* ContentView.swift */; };
+		13A7D1CB2C89E8FA00123456 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13A7D1CA2C89E8FA00123456 /* Assets.xcassets */; };
+		13A7D1CE2C89E8FA00123456 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13A7D1CD2C89E8FA00123456 /* Preview Assets.xcassets */; };
+		13A7D1D02C89E8FA00123456 /* ReceiptData.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1CF2C89E8FA00123456 /* ReceiptData.xcdatamodeld */; };
+		13A7D1D22C89E8FA00123456 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 13A7D1D12C89E8FA00123456 /* Info.plist */; };
+		13A7D1D42C89E8FA00123456 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 13A7D1D32C89E8FA00123456 /* LaunchScreen.storyboard */; };
+		13A7D1D52C89E8FA00123456 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1D42C89E8FA00123456 /* AppConfig.swift */; };
+		13A7D1D72C89E8FA00123456 /* Receipt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1D62C89E8FA00123456 /* Receipt.swift */; };
+		13A7D1D92C89E8FA00123456 /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1D82C89E8FA00123456 /* CoreDataManager.swift */; };
+		13A7D1DB2C89E8FA00123456 /* OCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1DA2C89E8FA00123456 /* OCRService.swift */; };
+		13A7D1DD2C89E8FA00123456 /* OllamaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1DC2C89E8FA00123456 /* OllamaService.swift */; };
+		13A7D1DF2C89E8FA00123456 /* ReceiptParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1DE2C89E8FA00123456 /* ReceiptParser.swift */; };
+		13A7D1E12C89E8FA00123456 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1E02C89E8FA00123456 /* ExportService.swift */; };
+		13A7D1E32C89E8FA00123456 /* ReceiptFilterSortEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1E22C89E8FA00123456 /* ReceiptFilterSortEngine.swift */; };
+		13A7D1E52C89E8FA00123456 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1E42C89E8FA00123456 /* CameraViewModel.swift */; };
+		13A7D1E72C89E8FA00123456 /* ReceiptListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1E62C89E8FA00123456 /* ReceiptListViewModel.swift */; };
+		13A7D1E92C89E8FA00123456 /* ScanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1E82C89E8FA00123456 /* ScanViewModel.swift */; };
+		13A7D1EB2C89E8FA00123456 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1EA2C89E8FA00123456 /* CameraView.swift */; };
+		13A7D1ED2C89E8FA00123456 /* ReceiptDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1EC2C89E8FA00123456 /* ReceiptDetailView.swift */; };
+		13A7D1EF2C89E8FA00123456 /* ReceiptListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1EE2C89E8FA00123456 /* ReceiptListView.swift */; };
+		13A7D1F12C89E8FA00123456 /* EnhancedReceiptListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1F02C89E8FA00123456 /* EnhancedReceiptListView.swift */; };
+		13A7D1F32C89E8FA00123456 /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1F22C89E8FA00123456 /* StatisticsView.swift */; };
+		13A7D1F52C89E8FA00123456 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1F42C89E8FA00123456 /* SettingsView.swift */; };
+		13A7D1F72C89E8FA00123456 /* APISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1F62C89E8FA00123456 /* APISettingsView.swift */; };
+		13A7D1F92C89E8FA00123456 /* OCRSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1F82C89E8FA00123456 /* OCRSettingsView.swift */; };
+		13A7D1FB2C89E8FA00123456 /* ExportOptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1FA2C89E8FA00123456 /* ExportOptionsView.swift */; };
+		13A7D1FD2C89E8FA00123456 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D1FC2C89E8FA00123456 /* ShareSheet.swift */; };
+		13A7D2012C89E8FA00123456 /* ReceiptScannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A7D2002C89E8FA00123456 /* ReceiptScannerTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		13A7D1FE2C89E8FA00123456 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 13A7D1BB2C89E8F900123456 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 13A7D1C22C89E8F900123456;
+			remoteInfo = ReceiptScanner;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		13A7D1C32C89E8F900123456 /* ReceiptScanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ReceiptScanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13A7D1C62C89E8F900123456 /* ReceiptScannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptScannerApp.swift; sourceTree = "<group>"; };
+		13A7D1C82C89E8F900123456 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		13A7D1CA2C89E8FA00123456 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		13A7D1CD2C89E8FA00123456 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		13A7D1CF2C89E8FA00123456 /* ReceiptData.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.xcdatamodel"; path = ReceiptData.xcdatamodeld; sourceTree = "<group>"; };
+		13A7D1D12C89E8FA00123456 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		13A7D1D32C89E8FA00123456 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		13A7D1D42C89E8FA00123456 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		13A7D1D62C89E8FA00123456 /* Receipt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Receipt.swift; sourceTree = "<group>"; };
+		13A7D1D82C89E8FA00123456 /* CoreDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
+		13A7D1DA2C89E8FA00123456 /* OCRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRService.swift; sourceTree = "<group>"; };
+		13A7D1DC2C89E8FA00123456 /* OllamaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OllamaService.swift; sourceTree = "<group>"; };
+		13A7D1DE2C89E8FA00123456 /* ReceiptParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptParser.swift; sourceTree = "<group>"; };
+		13A7D1E02C89E8FA00123456 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
+		13A7D1E22C89E8FA00123456 /* ReceiptFilterSortEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptFilterSortEngine.swift; sourceTree = "<group>"; };
+		13A7D1E42C89E8FA00123456 /* CameraViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModel.swift; sourceTree = "<group>"; };
+		13A7D1E62C89E8FA00123456 /* ReceiptListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptListViewModel.swift; sourceTree = "<group>"; };
+		13A7D1E82C89E8FA00123456 /* ScanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanViewModel.swift; sourceTree = "<group>"; };
+		13A7D1EA2C89E8FA00123456 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
+		13A7D1EC2C89E8FA00123456 /* ReceiptDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptDetailView.swift; sourceTree = "<group>"; };
+		13A7D1EE2C89E8FA00123456 /* ReceiptListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptListView.swift; sourceTree = "<group>"; };
+		13A7D1F02C89E8FA00123456 /* EnhancedReceiptListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedReceiptListView.swift; sourceTree = "<group>"; };
+		13A7D1F22C89E8FA00123456 /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
+		13A7D1F42C89E8FA00123456 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		13A7D1F62C89E8FA00123456 /* APISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APISettingsView.swift; sourceTree = "<group>"; };
+		13A7D1F82C89E8FA00123456 /* OCRSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRSettingsView.swift; sourceTree = "<group>"; };
+		13A7D1FA2C89E8FA00123456 /* ExportOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportOptionsView.swift; sourceTree = "<group>"; };
+		13A7D1FC2C89E8FA00123456 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		13A7D1FF2C89E8FA00123456 /* ReceiptScannerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReceiptScannerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		13A7D2002C89E8FA00123456 /* ReceiptScannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptScannerTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		13A7D1C02C89E8F900123456 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		13A7D1FC2C89E8FA00123456 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		13A7D1BA2C89E8F900123456 = {
+			isa = PBXGroup;
+			children = (
+				13A7D1C52C89E8F900123456 /* ReceiptScanner */,
+				13A7D2032C89E8FA00123456 /* ReceiptScannerTests */,
+				13A7D1C42C89E8F900123456 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		13A7D1C42C89E8F900123456 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D1C32C89E8F900123456 /* ReceiptScanner.app */,
+				13A7D1FF2C89E8FA00123456 /* ReceiptScannerTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		13A7D1C52C89E8F900123456 /* ReceiptScanner */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D2042C89E8FA00123456 /* App */,
+				13A7D2052C89E8FA00123456 /* Models */,
+				13A7D2062C89E8FA00123456 /* Views */,
+				13A7D2072C89E8FA00123456 /* ViewModels */,
+				13A7D2082C89E8FA00123456 /* Services */,
+				13A7D2092C89E8FA00123456 /* Resources */,
+				13A7D1CC2C89E8FA00123456 /* Preview Content */,
+			);
+			path = ReceiptScanner;
+			sourceTree = "<group>";
+		};
+		13A7D1CC2C89E8FA00123456 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D1CD2C89E8FA00123456 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		13A7D2032C89E8FA00123456 /* ReceiptScannerTests */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D2002C89E8FA00123456 /* ReceiptScannerTests.swift */,
+			);
+			path = ReceiptScannerTests;
+			sourceTree = "<group>";
+		};
+		13A7D2042C89E8FA00123456 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D1C62C89E8F900123456 /* ReceiptScannerApp.swift */,
+				13A7D1C82C89E8F900123456 /* ContentView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		13A7D2052C89E8FA00123456 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D1D62C89E8FA00123456 /* Receipt.swift */,
+				13A7D1D82C89E8FA00123456 /* CoreDataManager.swift */,
+				13A7D1CF2C89E8FA00123456 /* ReceiptData.xcdatamodeld */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		13A7D2062C89E8FA00123456 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D1EA2C89E8FA00123456 /* CameraView.swift */,
+				13A7D1EC2C89E8FA00123456 /* ReceiptDetailView.swift */,
+				13A7D1EE2C89E8FA00123456 /* ReceiptListView.swift */,
+				13A7D1F02C89E8FA00123456 /* EnhancedReceiptListView.swift */,
+				13A7D1F22C89E8FA00123456 /* StatisticsView.swift */,
+				13A7D1F42C89E8FA00123456 /* SettingsView.swift */,
+				13A7D1F62C89E8FA00123456 /* APISettingsView.swift */,
+				13A7D1F82C89E8FA00123456 /* OCRSettingsView.swift */,
+				13A7D1FA2C89E8FA00123456 /* ExportOptionsView.swift */,
+				13A7D1FC2C89E8FA00123456 /* ShareSheet.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		13A7D2072C89E8FA00123456 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D1E42C89E8FA00123456 /* CameraViewModel.swift */,
+				13A7D1E62C89E8FA00123456 /* ReceiptListViewModel.swift */,
+				13A7D1E82C89E8FA00123456 /* ScanViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		13A7D2082C89E8FA00123456 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D1DA2C89E8FA00123456 /* OCRService.swift */,
+				13A7D1DC2C89E8FA00123456 /* OllamaService.swift */,
+				13A7D1DE2C89E8FA00123456 /* ReceiptParser.swift */,
+				13A7D1E02C89E8FA00123456 /* ExportService.swift */,
+				13A7D1E22C89E8FA00123456 /* ReceiptFilterSortEngine.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		13A7D2092C89E8FA00123456 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				13A7D1D12C89E8FA00123456 /* Info.plist */,
+				13A7D1D32C89E8FA00123456 /* LaunchScreen.storyboard */,
+				13A7D1D42C89E8FA00123456 /* AppConfig.swift */,
+				13A7D1CA2C89E8FA00123456 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		13A7D1C22C89E8F900123456 /* ReceiptScanner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 13A7D2102C89E8FA00123456 /* Build configuration list for PBXNativeTarget "ReceiptScanner" */;
+			buildPhases = (
+				13A7D1BF2C89E8F900123456 /* Sources */,
+				13A7D1C02C89E8F900123456 /* Frameworks */,
+				13A7D1C12C89E8F900123456 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ReceiptScanner;
+			productName = ReceiptScanner;
+			productReference = 13A7D1C32C89E8F900123456 /* ReceiptScanner.app */;
+			productType = "com.apple.product-type.application";
+		};
+		13A7D1FB2C89E8FA00123456 /* ReceiptScannerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 13A7D2132C89E8FA00123456 /* Build configuration list for PBXNativeTarget "ReceiptScannerTests" */;
+			buildPhases = (
+				13A7D1F82C89E8FA00123456 /* Sources */,
+				13A7D1FC2C89E8FA00123456 /* Frameworks */,
+				13A7D1FD2C89E8FA00123456 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				13A7D1FF2C89E8FA00123456 /* PBXTargetDependency */,
+			);
+			name = ReceiptScannerTests;
+			productName = ReceiptScannerTests;
+			productReference = 13A7D1FF2C89E8FA00123456 /* ReceiptScannerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		13A7D1BB2C89E8F900123456 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					13A7D1C22C89E8F900123456 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					13A7D1FB2C89E8FA00123456 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 13A7D1C22C89E8F900123456;
+					};
+				};
+			};
+			buildConfigurationList = 13A7D1BE2C89E8F900123456 /* Build configuration list for PBXProject "ReceiptScanner" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 13A7D1BA2C89E8F900123456;
+			productRefGroup = 13A7D1C42C89E8F900123456 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				13A7D1C22C89E8F900123456 /* ReceiptScanner */,
+				13A7D1FB2C89E8FA00123456 /* ReceiptScannerTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		13A7D1C12C89E8F900123456 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				13A7D1CE2C89E8FA00123456 /* Preview Assets.xcassets in Resources */,
+				13A7D1CB2C89E8FA00123456 /* Assets.xcassets in Resources */,
+				13A7D1D22C89E8FA00123456 /* Info.plist in Resources */,
+				13A7D1D42C89E8FA00123456 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		13A7D1FD2C89E8FA00123456 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		13A7D1BF2C89E8F900123456 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				13A7D1C72C89E8F900123456 /* ReceiptScannerApp.swift in Sources */,
+				13A7D1C92C89E8F900123456 /* ContentView.swift in Sources */,
+				13A7D1D02C89E8FA00123456 /* ReceiptData.xcdatamodeld in Sources */,
+				13A7D1D52C89E8FA00123456 /* AppConfig.swift in Sources */,
+				13A7D1D72C89E8FA00123456 /* Receipt.swift in Sources */,
+				13A7D1D92C89E8FA00123456 /* CoreDataManager.swift in Sources */,
+				13A7D1DB2C89E8FA00123456 /* OCRService.swift in Sources */,
+				13A7D1DD2C89E8FA00123456 /* OllamaService.swift in Sources */,
+				13A7D1DF2C89E8FA00123456 /* ReceiptParser.swift in Sources */,
+				13A7D1E12C89E8FA00123456 /* ExportService.swift in Sources */,
+				13A7D1E32C89E8FA00123456 /* ReceiptFilterSortEngine.swift in Sources */,
+				13A7D1E52C89E8FA00123456 /* CameraViewModel.swift in Sources */,
+				13A7D1E72C89E8FA00123456 /* ReceiptListViewModel.swift in Sources */,
+				13A7D1E92C89E8FA00123456 /* ScanViewModel.swift in Sources */,
+				13A7D1EB2C89E8FA00123456 /* CameraView.swift in Sources */,
+				13A7D1ED2C89E8FA00123456 /* ReceiptDetailView.swift in Sources */,
+				13A7D1EF2C89E8FA00123456 /* ReceiptListView.swift in Sources */,
+				13A7D1F12C89E8FA00123456 /* EnhancedReceiptListView.swift in Sources */,
+				13A7D1F32C89E8FA00123456 /* StatisticsView.swift in Sources */,
+				13A7D1F52C89E8FA00123456 /* SettingsView.swift in Sources */,
+				13A7D1F72C89E8FA00123456 /* APISettingsView.swift in Sources */,
+				13A7D1F92C89E8FA00123456 /* OCRSettingsView.swift in Sources */,
+				13A7D1FB2C89E8FA00123456 /* ExportOptionsView.swift in Sources */,
+				13A7D1FD2C89E8FA00123456 /* ShareSheet.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		13A7D1F82C89E8FA00123456 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				13A7D2012C89E8FA00123456 /* ReceiptScannerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		13A7D1FF2C89E8FA00123456 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 13A7D1C22C89E8F900123456 /* ReceiptScanner */;
+			targetProxy = 13A7D1FE2C89E8FA00123456 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		13A7D20E2C89E8FA00123456 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		13A7D20F2C89E8FA00123456 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		13A7D2112C89E8FA00123456 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"ReceiptScanner/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "ReceiptScanner/Resources/Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app needs camera access to scan receipts for expense tracking";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs photo library access to import receipt images";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.receiptscanner.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		13A7D2122C89E8FA00123456 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"ReceiptScanner/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "ReceiptScanner/Resources/Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app needs camera access to scan receipts for expense tracking";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app needs photo library access to import receipt images";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.receiptscanner.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		13A7D2142C89E8FA00123456 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.receiptscanner.app.ReceiptScannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ReceiptScanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ReceiptScanner";
+			};
+			name = Debug;
+		};
+		13A7D2152C89E8FA00123456 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.receiptscanner.app.ReceiptScannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ReceiptScanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ReceiptScanner";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		13A7D1BE2C89E8F900123456 /* Build configuration list for PBXProject "ReceiptScanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				13A7D20E2C89E8FA00123456 /* Debug */,
+				13A7D20F2C89E8FA00123456 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		13A7D2102C89E8FA00123456 /* Build configuration list for PBXNativeTarget "ReceiptScanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				13A7D2112C89E8FA00123456 /* Debug */,
+				13A7D2122C89E8FA00123456 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		13A7D2132C89E8FA00123456 /* Build configuration list for PBXNativeTarget "ReceiptScannerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				13A7D2142C89E8FA00123456 /* Debug */,
+				13A7D2152C89E8FA00123456 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		13A7D1CF2C89E8FA00123456 /* ReceiptData.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				13A7D1D02C89E8FA00123456 /* ReceiptData.xcdatamodel */,
+			);
+			currentVersion = 13A7D1D02C89E8FA00123456 /* ReceiptData.xcdatamodel */;
+			path = ReceiptData.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = 13A7D1BB2C89E8F900123456 /* Project object */;
+}
